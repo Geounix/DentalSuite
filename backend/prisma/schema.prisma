@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String
+  email     String     @unique
+  password  String
+  role      String
+  status    String     @default("active")
+  createdAt DateTime   @default(now())
+  documents Document[]
+}
+
+model Patient {
+  id                Int               @id @default(autoincrement())
+  name              String
+  nationalId        String? 
+  email             String?
+  phone             String?
+  dateOfBirth       DateTime?
+  address           String?
+  insuranceProvider String?
+  createdAt         DateTime          @default(now())
+  appointments      Appointment[]
+  payments          Payment[]
+  dentalProcedures  DentalProcedure[]
+  documents         Document[]
+  consents          Consent[]
+}
+
+model Appointment {
+  id          Int      @id @default(autoincrement())
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   Int
+  doctorId    Int?
+  procedure   String
+  scheduledAt DateTime
+  duration    Int
+  status      String   @default("scheduled")
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id                Int      @id @default(autoincrement())
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  patientId         Int
+  appointmentId     Int?
+  originalAmount    Float
+  insuranceCoverage Float    @default(0)
+  finalAmount       Float
+  amountPaid        Float    @default(0)
+  status            String   @default("pending")
+  paymentMethod     String?
+  transactionId     String?
+  createdAt         DateTime @default(now())
+}
+
+model DentalProcedure {
+  id          Int       @id @default(autoincrement())
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  patientId   Int
+  toothNumber Int
+  condition   String
+  treatment   String
+  status      String    @default("planned")
+  doctorId    Int?
+  cost        Float?
+  date        DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+}
+
+model Insurance {
+  id              Int      @id @default(autoincrement())
+  name            String
+  code            String?
+  contact         String?
+  notes           String?
+  defaultCoverage Float?   @default(0)
+  createdAt       DateTime @default(now())
+  plans           InsurancePlan[]
+}
+
+model Document {
+  id         Int       @id @default(autoincrement())
+  patient    Patient?  @relation(fields: [patientId], references: [id])
+  patientId  Int?
+  uploader   User?     @relation(fields: [uploaderId], references: [id])
+  uploaderId Int?
+  filename   String
+  key        String    @unique
+  type       String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  consents   Consent[]
+}
+
+model Consent {
+  id         Int       @id @default(autoincrement())
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  patientId  Int
+  templateId String?
+  formData   Json?
+  signerName String?
+  signedAt   DateTime?
+  document   Document? @relation(fields: [documentId], references: [id])
+  documentId Int?
+  createdAt  DateTime  @default(now())
+}
+
+model InsurancePlan {
+  id          Int                 @id @default(autoincrement())
+  insurance   Insurance           @relation(fields: [insuranceId], references: [id])
+  insuranceId Int
+  planName    String
+  type        String?
+  procedures  InsuranceProcedure[]
+  createdAt   DateTime            @default(now())
+}
+
+model InsuranceProcedure {
+  id             Int           @id @default(autoincrement())
+  plan           InsurancePlan @relation(fields: [planId], references: [id])
+  planId         Int
+  name           String
+  coverageAmount Float?
+  copayPercent   Int?
+  createdAt      DateTime      @default(now())
+}

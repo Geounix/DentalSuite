@@ -1,0 +1,197 @@
+openapi: 3.0.3
+info:
+  title: Dentacare API (minimal)
+  version: 1.0.0
+  description: Minimal OpenAPI spec for the Dentacare backend (auth, patients, appointments, payments, procedures, insurances, documents, consents, reports, users, dashboard)
+
+servers:
+  - url: http://localhost:3000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    AuthRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email,password]
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    Patient:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        dateOfBirth: { type: string, format: date }
+    Appointment: { type: object }
+    Payment: { type: object }
+    Procedure: { type: object }
+    Insurance: { type: object }
+    Document: { type: object }
+    Consent: { type: object }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200': { description: 'User created', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+
+  /api/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200': { description: 'Login success', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+
+  /api/patients:
+    get:
+      summary: List patients
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '201': { description: Created }
+
+  /api/patients/{id}:
+    get:
+      summary: Get patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+    put:
+      summary: Update patient
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Patient' } }
+      responses: { '200': { description: OK } }
+    delete:
+      summary: Delete patient
+      responses: { '204': { description: No Content } }
+
+  /api/appointments:
+    get:
+      summary: List appointments
+    post:
+      summary: Create appointment
+
+  /api/payments:
+    get:
+      summary: List payments
+    post:
+      summary: Create payment
+
+  /api/procedures:
+    get:
+      summary: List procedures
+    post:
+      summary: Create procedure
+
+  /api/insurances:
+    get:
+      summary: List insurances
+    post:
+      summary: Create insurance
+
+  /api/documents:
+    get:
+      summary: List documents (metadata)
+    post:
+      summary: Create document metadata (file upload handled separately)
+
+  /api/consents:
+    get:
+      summary: List consents
+    post:
+      summary: Create consent record
+
+  /api/reports/list:
+    get:
+      summary: Available reports
+
+  /api/reports/run:
+    post:
+      summary: Run a report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+
+  /api/users:
+    get:
+      summary: List users (admin)
+    post:
+      summary: Create user (admin)
+
+  /api/dashboard/overview:
+    get:
+      summary: Dashboard KPIs overview
+
+components:
+  schemas:
+    ReportRequest:
+      type: object
+      properties:
+        type: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        groupBy: { type: string }
