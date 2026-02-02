@@ -8,7 +8,8 @@ const router = Router();
 router.use(requireAuth as any); // Cast temporal para el middleware
 
 // ✅ Todas las funciones usan AuthRequest en lugar de Request
-const isAdmin = (req: AuthRequest) => req.user && req.user.role === 'admin';
+// Normalizar role a minúsculas para evitar problemas de casing (e.g. 'ADMIN' vs 'admin')
+const isAdmin = (req: AuthRequest) => !!req.user && String(req.user.role).toLowerCase() === 'admin';
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {

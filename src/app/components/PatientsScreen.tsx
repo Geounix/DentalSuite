@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPatients, createPatient, updatePatient } from '../lib/api';
+import { getPatients, createPatient, updatePatient, getAppointments, getUsers } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -39,21 +39,32 @@ export function PatientsScreen() {
     insurance: ''
   });
 
-  // Cargar pacientes
+  // Cargar pacientes y calcular próximas citas
   useEffect(() => {
     const loadPatients = async () => {
       try {
-        const data = await getPatients();
-        const mapped: Patient[] = data.patients.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          email: p.email ?? '',
-          phone: p.phone ?? '',
-          dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
-          lastVisit: '-',
-          nextAppointment: undefined,
-          balance: p.balance ?? 0
-        }));
+        const [patientsRes, apptsRes] = await Promise.all([getPatients(), getAppointments()]);
+        const appts = apptsRes.appointments || [];
+        const mapped: Patient[] = patientsRes.patients.map((p: any) => {
+          const patientAppts = appts.filter((a: any) => a.patientId === p.id).map((a: any) => ({ ...a, scheduledAt: new Date(a.scheduledAt) }));
+          const upcoming = patientAppts
+            .filter((a: any) => a.scheduledAt > new Date())
+            .sort((a: any, b: any) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+          const past = patientAppts
+            .filter((a: any) => a.scheduledAt <= new Date())
+            .sort((a: any, b: any) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
+
+          return {
+            id: p.id,
+            name: p.name,
+            email: p.email ?? '',
+            phone: p.phone ?? '',
+            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
+            lastVisit: past.length ? past[0].scheduledAt.toISOString().split('T')[0] : '-',
+            nextAppointment: upcoming.length ? upcoming[0].scheduledAt.toISOString().split('T')[0] : undefined,
+            balance: p.balance ?? 0
+          };
+        });
         setPatients(mapped);
       } catch (err) {
         console.error('Error loading patients', err);
@@ -61,7 +72,6 @@ export function PatientsScreen() {
     };
     loadPatients();
   }, []);
-
 
   // Crear paciente
   const handleCreatePatient = async () => {
@@ -183,7 +193,10 @@ export function PatientsScreen() {
                         <TableCell className="text-gray-600">{patient.lastVisit}</TableCell>
                         <TableCell>
                           {patient.nextAppointment ? (
-                            <StatusBadge status="Scheduled" />
+                            <div className="flex items-center gap-3">
+                              <div className="text-sm text-gray-900">{patient.nextAppointment}</div>
+                              <StatusBadge status="Scheduled" />
+                            </div>
                           ) : (
                             <span className="text-sm text-gray-400">None</span>
                           )}
@@ -463,28 +476,11 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">Teeth Cleaning</p>
-                      <p className="text-sm text-gray-600">Dr. Smith</p>
-                      <p className="text-xs text-gray-500 mt-1">2026-01-05</p>
-                    </div>
-                    <StatusBadge status="Completed" />
-                  </div>
-                  <div className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">Root Canal Follow-up</p>
-                      <p className="text-sm text-gray-600">Dr. Martinez</p>
-                      <p className="text-xs text-gray-500 mt-1">2025-12-15</p>
-                    </div>
-                    <StatusBadge status="Completed" />
-                  </div>
-                </div>
-              </CardContent>
+                  <CardTitle>Recent Appointments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecentAppointments patientId={patient.id} />
+                </CardContent>
             </Card>
 
             <Card>
@@ -544,7 +540,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
         </TabsContent>
 
         <TabsContent value="odontogram">
-          <OdontogramScreen />
+          <OdontogramScreen patientId={patient.id} />
         </TabsContent>
 
         <TabsContent value="payments">
@@ -604,6 +600,58 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Recent appointments (API-driven)
+function RecentAppointments({ patientId }: { patientId: number }) {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const [apptsRes, usersRes] = await Promise.all([getAppointments(), getUsers()]);
+        const appts = (apptsRes.appointments || [])
+          .filter((a: any) => a.patientId === patientId)
+          .sort((a: any, b: any) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+          .slice(0, 5)
+          .map((a: any) => ({
+            id: a.id,
+            procedure: a.procedure,
+            doctorName: usersRes.users?.find((u: any) => u.id === a.doctorId)?.name || 'Unknown',
+            date: new Date(a.scheduledAt).toISOString().split('T')[0],
+            status: a.status || 'scheduled'
+          }));
+        if (!mounted) return;
+        setAppointments(appts);
+      } catch (err) {
+        console.error('Failed loading recent appointments', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [patientId]);
+
+  if (loading) return <div>Loading appointments...</div>;
+  if (appointments.length === 0) return <div className="text-sm text-gray-400">No recent appointments</div>;
+
+  return (
+    <div className="space-y-3">
+      {appointments.map(appt => (
+        <div key={appt.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p className="font-medium text-gray-900">{appt.procedure}</p>
+            <p className="text-sm text-gray-600">{appt.doctorName}</p>
+            <p className="text-xs text-gray-500 mt-1">{appt.date}</p>
+          </div>
+          <StatusBadge status={appt.status} />
+        </div>
+      ))}
     </div>
   );
 }

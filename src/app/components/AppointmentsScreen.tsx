@@ -8,13 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { StatusBadge } from './StatusBadge';
 import { CalendarPlus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { getAppointments, createAppointment, getPatients, getUsers } from '../lib/api';
+import { getAppointments, createAppointment, getPatients, getUsers, updateAppointment } from '../lib/api';
 
 interface Appointment {
   id: number;
   scheduledAt: Date;
   patient: string;
   doctor: string;
+  doctorId?: number;
   procedure: string;
   status: 'Scheduled' | 'Completed' | 'Cancelled';
   duration: number;
@@ -44,11 +45,6 @@ export function AppointmentsScreen() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // 🚨 Simula obtener usuario actual
-        const userRes = await getUsers(); // aquí deberías usar /me si existe
-        const user = userRes.users.find((u: any) => u.id === 1); // ejemplo: doctor con id 1
-        setCurrentUser(user);
-
         const [apptsRes, patientsRes, usersRes] = await Promise.all([
           getAppointments(),
           getPatients(),
@@ -57,17 +53,32 @@ export function AppointmentsScreen() {
 
         setPatients(patientsRes.patients);
 
-        const doctorsData = usersRes.users.filter((u: any) => u.role === 'doctor');
+        // Normalizar roles y obtener lista de doctores
+        const doctorsData = usersRes.users.filter((u: any) => String(u.role).toLowerCase() === 'doctor');
+        // Detectar usuario actual desde el token si es posible
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const me = usersRes.users.find((u: any) => u.id === payload.id) || usersRes.users[0];
+            setCurrentUser(me);
+          } else {
+            setCurrentUser(usersRes.users[0]);
+          }
+        } catch (e) {
+          setCurrentUser(usersRes.users[0]);
+        }
         setDoctors(doctorsData);
 
         const mapped = apptsRes.appointments.map((a: any) => {
           const patientName = patientsRes.patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
-          const doctorName = doctorsData.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
+          const doctorName = usersRes.users.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
           return {
             id: a.id,
             scheduledAt: new Date(a.scheduledAt),
             patient: patientName,
             doctor: doctorName,
+            doctorId: a.doctorId,
             procedure: a.procedure,
             status: a.status,
             duration: a.duration
@@ -134,11 +145,37 @@ export function AppointmentsScreen() {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Scheduled': return 'border-l-blue-500 bg-blue-50';
-      case 'Completed': return 'border-l-emerald-500 bg-emerald-50';
-      case 'Cancelled': return 'border-l-red-500 bg-red-50';
+    switch (String(status).toLowerCase()) {
+      case 'scheduled': return 'border-l-blue-500 bg-blue-50';
+      case 'completed': return 'border-l-emerald-500 bg-emerald-50';
+      case 'cancelled': return 'border-l-red-500 bg-red-50';
       default: return 'border-l-gray-500 bg-gray-50';
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, status: string) => {
+    try {
+      await updateAppointment(id, { status });
+      // refresh appointments
+      const latest = await getAppointments();
+      const mappedLatest = latest.appointments.map((a: any) => {
+        const patientName = patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
+        const doctorName = doctors.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
+        return {
+          id: a.id,
+          scheduledAt: new Date(a.scheduledAt),
+          patient: patientName,
+          doctor: doctorName,
+          doctorId: a.doctorId,
+          procedure: a.procedure,
+          status: a.status,
+          duration: a.duration
+        };
+      });
+      setAppointments(mappedLatest);
+    } catch (err) {
+      console.error('Failed to update appointment status', err);
+      alert('Failed to update appointment');
     }
   };
 
@@ -162,7 +199,7 @@ export function AppointmentsScreen() {
 
       // 🔒 VALIDACIÓN 2: No permitir duplicados (mismo doctor, misma fecha, misma hora)
       const isDuplicate = appointments.some(appt => {
-        const sameDoctor = appt.doctor === formData.doctor;
+        const sameDoctor = appt.doctorId && doctorId ? appt.doctorId === doctorId : appt.doctor === formData.doctor;
         const sameDate = appt.scheduledAt.toDateString() === scheduledAt.toDateString();
         const sameHour = appt.scheduledAt.getHours() === scheduledAt.getHours();
         const sameMinute = appt.scheduledAt.getMinutes() === scheduledAt.getMinutes();
@@ -185,18 +222,24 @@ export function AppointmentsScreen() {
         notes: formData.notes
       });
 
-      setAppointments(prev => [
-        ...prev,
-        {
-          id: res.appointment.id,
-          scheduledAt,
-          patient: formData.patient,
-          doctor: formData.doctor,
-          procedure: formData.procedure,
-          status: res.appointment.status || 'Scheduled',
-          duration: formData.duration
-        }
-      ]);
+      // Refrescar la lista completa desde la API para asegurar consistencia
+      const latest = await getAppointments();
+      const mappedLatest = latest.appointments.map((a: any) => {
+        const patientName = patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
+        const doctorName = doctors.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
+        return {
+          id: a.id,
+          scheduledAt: new Date(a.scheduledAt),
+          patient: patientName,
+          doctor: doctorName,
+          doctorId: a.doctorId,
+          procedure: a.procedure,
+          status: a.status,
+          duration: a.duration
+        };
+      });
+
+      setAppointments(mappedLatest);
 
       setIsCreateModalOpen(false);
 
@@ -271,63 +314,124 @@ export function AppointmentsScreen() {
         </CardContent>
       </Card>
 
-      {/* Calendar View por día */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {doctors
-          .filter(doc => currentUser.role === 'admin' || doc.id === currentUser.id)
-          .map(doc => {
-            const apptsForDoctor = appointments.filter(a =>
-              (currentUser.role === 'admin' || a.doctor === currentUser.name) &&
-              a.doctor === doc.name &&
-              a.scheduledAt.toDateString() === currentDate.toDateString()
-            );
+      {/* Calendar View: day or week */}
+      {view === 'day' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {doctors
+            .filter(doc => currentUser.role === 'admin' || doc.id === currentUser.id)
+            .map(doc => {
+              const apptsForDoctor = appointments.filter(a =>
+                (currentUser.role === 'admin' || a.doctor === currentUser.name) &&
+                a.doctor === doc.name &&
+                a.scheduledAt.toDateString() === currentDate.toDateString()
+              );
 
-            return (
-              <Card key={doc.id}>
-                <CardHeader>
-                  <CardTitle>{doc.name}'s Schedule</CardTitle>
-                  <CardDescription>{apptsForDoctor.length} appointments</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {timeSlots.map(time => {
-                      const [hourStr, minuteStr] = time.split(':');
-                      const hour = parseInt(hourStr);
-                      const isPM = time.includes('PM');
-                      const hour24 = isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour);
-                      const minute = parseInt(minuteStr);
+              return (
+                <Card key={doc.id}>
+                  <CardHeader>
+                    <CardTitle>{doc.name}'s Schedule</CardTitle>
+                    <CardDescription>{apptsForDoctor.length} appointments</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {timeSlots.map(time => {
+                        const [hourStr, minuteStr] = time.split(':');
+                        const hour = parseInt(hourStr);
+                        const isPM = time.includes('PM');
+                        const hour24 = isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour);
+                        const minute = parseInt(minuteStr);
 
-                      const appt = apptsForDoctor.find(a =>
-                        a.scheduledAt.getHours() === hour24 &&
-                        a.scheduledAt.getMinutes() === minute
-                      );
+                        const appt = apptsForDoctor.find(a =>
+                          a.scheduledAt.getHours() === hour24 &&
+                          a.scheduledAt.getMinutes() === minute
+                        );
 
-                      return (
-                        <div key={time} className="flex items-center gap-3 min-h-[60px]">
-                          <div className="w-20 text-sm text-gray-600 font-medium">{time}</div>
-                          {appt ? (
-                            <div className={`flex-1 p-3 rounded-lg border-l-4 ${getStatusColor(appt.status)} cursor-pointer hover:shadow-md transition-shadow`}>
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <p className="font-medium text-gray-900">{appt.patient}</p>
-                                  <p className="text-sm text-gray-600">{appt.procedure}</p>
-                                  <p className="text-xs text-gray-500 mt-1">{appt.duration} min</p>
+                        return (
+                          <div key={time} className="flex items-center gap-3 min-h-[60px]">
+                            <div className="w-20 text-sm text-gray-600 font-medium">{time}</div>
+                            {appt ? (
+                              <div className={`flex-1 p-3 rounded-lg border-l-4 ${getStatusColor(appt.status)} cursor-pointer hover:shadow-md transition-shadow`}>
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium text-gray-900">{appt.patient}</p>
+                                    <p className="text-sm text-gray-600">{appt.procedure}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{appt.duration} min</p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2">
+                                    <StatusBadge status={appt.status} />
+                                    <div className="flex gap-2">
+                                      {appt.status.toLowerCase() !== 'completed' && (
+                                        <Button size="sm" onClick={() => handleUpdateStatus(appt.id, 'completed')}>Complete</Button>
+                                      )}
+                                      {appt.status.toLowerCase() !== 'cancelled' && (
+                                        <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(appt.id, 'cancelled')}>Cancel</Button>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <StatusBadge status={appt.status} />
                               </div>
+                            ) : (
+                              <div className="flex-1 p-3 rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">Available</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {doctors
+            .filter(doc => currentUser.role === 'admin' || doc.id === currentUser.id)
+            .map(doc => {
+              const weekStart = new Date(currentDate);
+              const dow = weekStart.getDay();
+              weekStart.setDate(weekStart.getDate() - dow);
+              const days = Array.from({ length: 7 }).map((_, i) => {
+                const d = new Date(weekStart);
+                d.setDate(weekStart.getDate() + i);
+                return d;
+              });
+
+              const apptsForDoctor = appointments.filter(a => a.doctor === doc.name);
+
+              return (
+                <Card key={doc.id}>
+                  <CardHeader>
+                    <CardTitle>{doc.name} — Week</CardTitle>
+                    <CardDescription>{apptsForDoctor.length} appointments this week</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-7 gap-4">
+                      {days.map(day => {
+                        const apptsForDay = apptsForDoctor.filter(a => a.scheduledAt.toDateString() === day.toDateString())
+                          .sort((a,b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+
+                        return (
+                          <div key={day.toISOString()} className="p-2 border rounded">
+                            <div className="text-xs text-gray-500 font-medium mb-2">{day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                            <div className="space-y-2">
+                              {apptsForDay.length === 0 && <div className="text-xs text-gray-400">No appts</div>}
+                              {apptsForDay.map(appt => (
+                                <div key={appt.id} className={`p-2 rounded ${getStatusColor(appt.status)} text-sm` }>
+                                  <div className="font-medium">{appt.patient}</div>
+                                  <div className="text-xs text-gray-700">{appt.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {appt.procedure}</div>
+                                </div>
+                              ))}
                             </div>
-                          ) : (
-                            <div className="flex-1 p-3 rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">Available</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-      </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+        </div>
+      )}
 
       {/* Create Appointment Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>

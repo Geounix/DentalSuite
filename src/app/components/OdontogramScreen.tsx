@@ -26,7 +26,10 @@ interface ToothData {
   procedures: Procedure[];
 }
 
-export function OdontogramScreen() {
+import { useEffect } from 'react';
+import { getProcedures, createDentalProcedure, getUsers } from '../lib/api';
+
+export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [teethData, setTeethData] = useState<Map<number, ToothData>>(new Map([
     [18, { number: 18, procedures: [
@@ -49,6 +52,48 @@ export function OdontogramScreen() {
     date: new Date().toISOString().split('T')[0],
     notes: ''
   });
+
+  useEffect(() => {
+    if (!patientId) return;
+    let mounted = true;
+    async function load() {
+      try {
+        const [procsRes, usersRes] = await Promise.all([getProcedures(), getUsers()]);
+        const procs = procsRes.procedures || [];
+        const users = usersRes.users || [];
+
+        const map = new Map<number, ToothData>();
+        procs.filter((p: any) => p.patientId === patientId).forEach((p: any) => {
+          const tooth = p.toothNumber;
+          const doctorName = users.find((u: any) => u.id === p.doctorId)?.name || 'Unknown';
+          const proc: Procedure = {
+            id: String(p.id),
+            condition: p.condition || '',
+            treatment: p.treatment || '',
+            status: (p.status || 'planned') === 'planned' ? 'Planned' : (p.status === 'in progress' ? 'In Progress' : (p.status === 'completed' ? 'Completed' : String(p.status))),
+            doctor: doctorName,
+            cost: p.cost ?? 0,
+            date: p.date ? new Date(p.date).toISOString().split('T')[0] : '',
+            notes: p.notes
+          };
+
+          const existing = map.get(tooth);
+          if (existing) existing.procedures.push(proc);
+          else map.set(tooth, { number: tooth, procedures: [proc] });
+        });
+
+        if (!mounted) return;
+        // merge with current teethData
+        const newMap = new Map(teethData);
+        map.forEach((v, k) => newMap.set(k, v));
+        setTeethData(newMap);
+      } catch (err) {
+        console.error('Failed to load dental procedures', err);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [patientId]);
 
   // Tooth numbering (FDI notation)
   const upperTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -82,7 +127,7 @@ export function OdontogramScreen() {
   };
 
   const handleAddProcedure = () => {
-    if (!selectedTooth || !newProcedure.condition || !newProcedure.treatment) return;
+    if (!selectedTooth || !newProcedure.condition || !newProcedure.treatment || !patientId) return;
 
     const procedure: Procedure = {
       id: Date.now().toString(),
@@ -100,9 +145,49 @@ export function OdontogramScreen() {
       ? { ...currentTooth, procedures: [...currentTooth.procedures, procedure] }
       : { number: selectedTooth, procedures: [procedure] };
 
-    const newTeethData = new Map(teethData);
-    newTeethData.set(selectedTooth, updatedTooth);
-    setTeethData(newTeethData);
+    // Persist to API
+    (async () => {
+      try {
+        // attempt to resolve doctorId by name
+        const usersRes = await getUsers();
+        const doctor = usersRes.users?.find((u: any) => u.name === procedure.doctor);
+        const payload: any = {
+          patientId,
+          toothNumber: selectedTooth,
+          condition: procedure.condition,
+          treatment: procedure.treatment,
+          status: procedure.status.toLowerCase(),
+          doctorId: doctor ? doctor.id : undefined,
+          cost: procedure.cost,
+          date: procedure.date,
+          notes: procedure.notes
+        };
+        const res = await createDentalProcedure(payload);
+        const created = res.procedure;
+        const proc: Procedure = {
+          id: String(created.id),
+          condition: created.condition || procedure.condition || '',
+          treatment: created.treatment || procedure.treatment || '',
+          status: created.status === 'planned' ? 'Planned' : (created.status === 'in progress' ? 'In Progress' : (created.status === 'completed' ? 'Completed' : created.status)),
+          doctor: doctor ? doctor.name : procedure.doctor || 'Unknown',
+          cost: created.cost ?? procedure.cost ?? 0,
+          date: created.date ? new Date(created.date).toISOString().split('T')[0] : (procedure.date || ''),
+          notes: created.notes || procedure.notes
+        };
+
+        const currentTooth = teethData.get(selectedTooth);
+        const updatedTooth: ToothData = currentTooth
+          ? { ...currentTooth, procedures: [...currentTooth.procedures, proc] }
+          : { number: selectedTooth, procedures: [proc] };
+
+        const newTeethData = new Map(teethData);
+        newTeethData.set(selectedTooth, updatedTooth);
+        setTeethData(newTeethData);
+      } catch (err) {
+        console.error('Failed to create dental procedure', err);
+        alert('Failed to save procedure');
+      }
+    })();
 
     // Reset form
     setNewProcedure({

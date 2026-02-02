@@ -78,6 +78,32 @@ export const getProcedures = async () => {
   return data;
 };
 
+// Dental procedures (odontogram)
+export const createDentalProcedure = async (payload: {
+  patientId: number;
+  toothNumber: number;
+  condition?: string;
+  treatment?: string;
+  status?: string;
+  doctorId?: number;
+  cost?: number;
+  date?: string;
+  notes?: string;
+}) => {
+  const { data } = await api.post('/api/procedures', payload);
+  return data;
+};
+
+export const updateDentalProcedure = async (id: number, payload: any) => {
+  const { data } = await api.put(`/api/procedures/${id}`, payload);
+  return data;
+};
+
+export const deleteDentalProcedure = async (id: number) => {
+  const { data } = await api.delete(`/api/procedures/${id}`);
+  return data;
+};
+
 // ---------------- INSURANCES ----------------
 export const getInsurances = async () => {
   const { data } = await api.get("/api/insurances");
