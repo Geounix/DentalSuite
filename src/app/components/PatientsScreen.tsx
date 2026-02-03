@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getPatients, createPatient, updatePatient, getAppointments, getUsers, getProcedures, getPayments } from '../lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { getPatients, createPatient, updatePatient, getAppointments, getUsers, getProcedures, getPayments, getDocuments, deleteDocument, uploadDocument } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -443,6 +443,99 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
     loadPayments();
     return () => { mounted = false; };
   }, [patient.id]);
+  // Documents (gallery) state
+  const [patientDocs, setPatientDocs] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isImageOpen, setIsImageOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState<any>(null);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [patientUploading, setPatientUploading] = useState<Record<string, boolean>>({});
+
+  const handlePatientBrowse = () => fileInputRef.current?.click();
+
+  const handlePatientFiles = async (files: File[]) => {
+    for (const f of files) {
+      try {
+        setPatientUploading((s) => ({ ...s, [f.name]: true }));
+        await uploadDocument(f, undefined, patient.id);
+        // refresh - fetch documents for this patient only
+        const res = await getDocuments(undefined, patient.id);
+        const list = (res.documents || res || []);
+        setPatientDocs(list);
+      } catch (err: any) {
+        console.error('upload error', err);
+        const msg = err?.body?.error || (err?.body ? JSON.stringify(err.body) : 'Upload failed');
+        alert(msg);
+      } finally {
+        setPatientUploading((s) => {
+          const n = { ...s };
+          delete n[f.name];
+          return n;
+        });
+      }
+    }
+  };
+
+  const handlePatientInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length) handlePatientFiles(files);
+    e.currentTarget.value = '';
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadDocs() {
+      try {
+        setLoadingDocs(true);
+        const res = await getDocuments(undefined, patient.id);
+        const list = (res.documents || res || []);
+        if (!mounted) return;
+        setPatientDocs(list);
+      } catch (err) {
+        console.error('Failed loading patient documents', err);
+      } finally {
+        if (mounted) setLoadingDocs(false);
+      }
+    }
+    loadDocs();
+    return () => { mounted = false; };
+  }, [patient.id]);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setPatientDocs(prev => {
+      const arr = [...prev];
+      const [moved] = arr.splice(draggedIndex, 1);
+      arr.splice(index, 0, moved);
+      return arr;
+    });
+    setDraggedIndex(null);
+  };
+
+  const handleOpenImage = (doc: any) => { setCurrentImage(doc); setIsImageOpen(true); };
+
+  const handleDeleteDocument = async (id: number) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      await deleteDocument(id);
+      setPatientDocs(prev => prev.filter(d => d.id !== id));
+    } catch (err) {
+      console.error('Failed deleting document', err);
+      alert('Could not delete document');
+    }
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -590,22 +683,65 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
 
         <TabsContent value="documents">
           <Card>
-            <CardHeader>
-              <CardTitle>Patient Documents</CardTitle>
-              <CardDescription>Medical records, consent forms, and attachments</CardDescription>
+            <CardHeader className="flex items-start gap-4">
+              <div>
+                <CardTitle>Patient Documents</CardTitle>
+                <CardDescription>Radiographs and uploaded images</CardDescription>
+              </div>
+              <div className="ml-auto">
+                <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handlePatientInputChange} />
+                <Button onClick={handlePatientBrowse} className="bg-blue-600 hover:bg-blue-700" disabled={Object.keys(patientUploading).length > 0}>
+                  {Object.keys(patientUploading).length > 0 ? 'Uploading...' : 'Upload Files'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {['X-Ray - 2026-01-05.pdf', 'Consent Form - Root Canal.pdf', 'Insurance Card.jpg'].map((doc, index) => (
-                  <div key={index} className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <FileText className="w-8 h-8 text-blue-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-900">{doc}</p>
-                    <p className="text-xs text-gray-500 mt-1">Uploaded: 2026-01-05</p>
-                  </div>
-                ))}
-              </div>
+              {loadingDocs ? (
+                <div>Loading documents...</div>
+              ) : patientDocs.length === 0 ? (
+                <div className="text-sm text-gray-400">No documents for this patient</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {patientDocs.map((doc: any, idx: number) => (
+                    <div
+                      key={doc.id}
+                      className="group"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, idx)}
+                    >
+                      <div className="w-full h-40 bg-gray-100 rounded overflow-hidden cursor-move" onClick={() => handleOpenImage(doc)}>
+                        <img src={`${API_BASE}/uploads/${doc.key}`} alt={doc.filename} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="text-sm truncate">{doc.filename}</div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleOpenImage(doc)}>View</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteDocument(doc.id)}>Delete</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>{currentImage?.filename}</DialogTitle>
+                <DialogDescription>{currentImage?.createdAt ? new Date(currentImage.createdAt).toLocaleString() : ''}</DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                {currentImage && <img src={`${API_BASE}/uploads/${currentImage.key}`} alt={currentImage.filename} className="w-full h-auto rounded" />}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsImageOpen(false)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

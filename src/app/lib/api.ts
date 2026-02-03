@@ -231,10 +231,11 @@ export const deleteConsent = async (id: number) => {
 };
 
 // ---------------- DOCUMENTS ----------------
-export const uploadDocument = async (file: File, type?: string) => {
+export const uploadDocument = async (file: File, type?: string, patientId?: number) => {
   const form = new FormData();
   form.append("file", file);
   if (type) form.append("type", type);
+  if (patientId) form.append("patientId", String(patientId));
 
   const { data } = await api.post("/api/documents/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -243,10 +244,11 @@ export const uploadDocument = async (file: File, type?: string) => {
   return data;
 };
 
-export const getDocuments = async (type?: string) => {
-  const { data } = await api.get("/api/documents", {
-    params: type ? { type } : {},
-  });
+export const getDocuments = async (type?: string, patientId?: number) => {
+  const params: any = {};
+  if (type) params.type = type;
+  if (patientId) params.patientId = patientId;
+  const { data } = await api.get("/api/documents", { params });
   return data;
 };
 

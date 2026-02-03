@@ -66,9 +66,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const { originalname, filename, path: filePath } = req.file as any;
     const docType = (req.body && req.body.type) || (req.query && req.query.type) || undefined;
+    // try to read patientId from the multipart form (will be a string)
+    const patientIdRaw = req.body && req.body.patientId;
+    const patientId = patientIdRaw ? Number(patientIdRaw) : undefined;
     // store relative key so client can download from /uploads
     const rel = path.relative(path.join(__dirname, '..', '..', 'uploads'), filePath).replace(/\\/g, '/');
-    const doc = await prisma.document.create({ data: { filename: originalname, key: rel, uploaderId: req.user?.id, type: docType } });
+    const doc = await prisma.document.create({ data: { filename: originalname, key: rel, uploaderId: req.user?.id, type: docType, patientId } });
     res.status(201).json({ document: doc });
   } catch (err) {
     console.error('upload error', err);
