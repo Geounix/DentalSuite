@@ -11,7 +11,7 @@ async function main() {
       name: 'Administrador',
       email: 'admin@dentalcare.com',
       password: passwordHash,
-      role: 'ADMIN',
+      role: 'Admin',
       status: 'active',
     },
   })

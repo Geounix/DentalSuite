@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { StatusBadge } from './StatusBadge';
 import { Wallet, Search, Eye, DollarSign, TrendingDown, Receipt } from 'lucide-react';
+import { getPayments, createPayment, getPatients } from '../lib/api';
+import { getPaymentTransactions, createPaymentTransaction, updatePayment } from '../lib/api';
 
 interface Payment {
   id: number;
@@ -26,31 +28,155 @@ interface Payment {
 export function PaymentsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentTransactions, setPaymentTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [isAddInstallmentOpen, setIsAddInstallmentOpen] = useState(false);
+  const [installmentForm, setInstallmentForm] = useState({ amount: '', method: 'credit-card', transactionId: '', notes: '' });
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [patientsList, setPatientsList] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(true);
 
-  const [payments] = useState<Payment[]>([
-    { id: 1, patient: 'Sarah Johnson', procedure: 'Teeth Cleaning', date: '2026-01-05', originalAmount: 250, insuranceCoverage: 150, finalAmount: 100, amountPaid: 100, status: 'Paid', paymentMethod: 'Credit Card', transactionId: 'TXN-001234' },
-    { id: 2, patient: 'Michael Chen', procedure: 'Root Canal', date: '2025-12-20', originalAmount: 1200, insuranceCoverage: 700, finalAmount: 500, amountPaid: 150, status: 'Partial', paymentMethod: 'Cash' },
-    { id: 3, patient: 'Emma Wilson', procedure: 'Crown Placement', date: '2026-01-03', originalAmount: 1500, insuranceCoverage: 800, finalAmount: 700, amountPaid: 550, status: 'Partial', paymentMethod: 'Check' },
-    { id: 4, patient: 'James Brown', procedure: 'Filling', date: '2025-11-28', originalAmount: 300, insuranceCoverage: 200, finalAmount: 100, amountPaid: 100, status: 'Paid', paymentMethod: 'Credit Card', transactionId: 'TXN-001189' },
-    { id: 5, patient: 'Lisa Anderson', procedure: 'Dental Implant', date: '2026-01-07', originalAmount: 3000, insuranceCoverage: 1500, finalAmount: 1500, amountPaid: 1000, status: 'Partial', paymentMethod: 'Payment Plan' },
-    { id: 6, patient: 'Robert Garcia', procedure: 'Consultation', date: '2025-10-15', originalAmount: 150, insuranceCoverage: 0, finalAmount: 150, amountPaid: 0, status: 'Overdue' },
-  ]);
-
-  const [paymentForm, setPaymentForm] = useState({
+  const [paymentForm, setPaymentForm] = useState<any>({
+    patientId: '',
     amount: '',
+    insuranceCoverage: '',
     method: 'credit-card',
     transactionId: '',
+    paymentType: 'full',
     notes: ''
   });
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const filteredPayments = payments.filter(payment =>
-    payment.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.procedure.toLowerCase().includes(searchQuery.toLowerCase())
+    (payment.patient || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (payment.procedure || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalOutstanding = payments.reduce((sum, p) => sum + (p.finalAmount - p.amountPaid), 0);
-  const totalInsuranceSavings = payments.reduce((sum, p) => sum + p.insuranceCoverage, 0);
+  const totalOutstanding = payments.reduce((sum, p) => sum + ((p.finalAmount ?? 0) - (p.amountPaid ?? 0)), 0);
+  const totalInsuranceSavings = payments.reduce((sum, p) => sum + (p.insuranceCoverage ?? 0), 0);
+
+  // load payments + patients
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        setLoadingPayments(true);
+        const [paysRes, patsRes] = await Promise.all([getPayments(), getPatients()]);
+        if (!mounted) return;
+        const pays = (paysRes.payments || []).map((p: any) => ({
+          id: p.id,
+          patient: p.patientName || `#${p.patientId}`,
+          procedure: p.procedure || '',
+          date: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : (p.date || ''),
+          originalAmount: p.originalAmount,
+          insuranceCoverage: p.insuranceCoverage,
+          finalAmount: p.finalAmount,
+          amountPaid: p.amountPaid,
+          status: p.status ?? (p.amountPaid >= p.finalAmount ? 'Paid' : (p.amountPaid > 0 ? 'Partial' : 'Pending')),
+          paymentMethod: p.paymentMethod,
+          transactionId: p.transactionId
+        }));
+        setPayments(pays);
+        setPatientsList(patsRes.patients || []);
+      } catch (err) {
+        console.error('Failed loading payments', err);
+      } finally {
+        if (mounted) setLoadingPayments(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  // listen for dashboard quick action to open record payment modal
+  useEffect(() => {
+    const onOpen = () => setIsRecordPaymentOpen(true);
+    window.addEventListener('open:record-payment', onOpen as EventListener);
+    return () => { window.removeEventListener('open:record-payment', onOpen as EventListener); };
+  }, []);
+
+  // load transactions for selected payment
+  useEffect(() => {
+    if (!selectedPayment) return;
+    let mounted = true;
+    async function loadTx() {
+      try {
+        setLoadingTransactions(true);
+        const res = await getPaymentTransactions(selectedPayment.id);
+        if (!mounted) return;
+        setPaymentTransactions(res.transactions || []);
+      } catch (err) {
+        console.error('Failed loading transactions', err);
+      } finally {
+        if (mounted) setLoadingTransactions(false);
+      }
+    }
+    loadTx();
+    return () => { mounted = false; };
+  }, [selectedPayment]);
+
+  const handleRecordPayment = async () => {
+    // validate transaction id for card payments except when marking as owes
+    if ((paymentForm.method === 'credit-card' || paymentForm.method === 'debit-card') && paymentForm.paymentType !== 'owes' && !String(paymentForm.transactionId || '').trim()) {
+      setPaymentError('Transaction ID is required for card payments.');
+      return;
+    }
+
+    try {
+      const patientId = Number(paymentForm.patientId);
+      const originalAmount = Number(paymentForm.amount) || 0;
+      const insuranceCoverage = Number(paymentForm.insuranceCoverage) || 0;
+      const finalAmount = originalAmount - insuranceCoverage;
+
+      let amountPaid = 0;
+      let status = 'Pending';
+      if (paymentForm.paymentType === 'full') {
+        amountPaid = finalAmount;
+        status = 'Paid';
+      } else if (paymentForm.paymentType === 'partial') {
+        amountPaid = Number(paymentForm.amount) || 0;
+        status = amountPaid >= finalAmount ? 'Paid' : 'Partial';
+      } else if (paymentForm.paymentType === 'owes') {
+        amountPaid = 0;
+        status = 'Pending';
+      }
+
+      const payload: any = {
+        patientId,
+        originalAmount,
+        insuranceCoverage,
+        amountPaid,
+        paymentMethod: paymentForm.method,
+        transactionId: paymentForm.transactionId || undefined,
+        notes: paymentForm.notes,
+        status
+      };
+
+      const res = await createPayment(payload);
+      const created = res.payment || res;
+      const newPayment: Payment = {
+        id: created.id,
+        patient: patientsList.find((p: any) => p.id === created.patientId)?.name || `#${created.patientId}`,
+        procedure: created.procedure || '',
+        date: created.createdAt ? new Date(created.createdAt).toISOString().split('T')[0] : '',
+        originalAmount: created.originalAmount,
+        insuranceCoverage: created.insuranceCoverage,
+        finalAmount: created.finalAmount,
+        amountPaid: created.amountPaid,
+        status: created.status ?? (created.amountPaid >= created.finalAmount ? 'Paid' : (created.amountPaid > 0 ? 'Partial' : 'Pending')),
+        paymentMethod: created.paymentMethod,
+        transactionId: created.transactionId
+      };
+      setPayments(prev => [newPayment, ...prev]);
+      setPaymentForm({ patientId: '', amount: '', insuranceCoverage: '', method: 'credit-card', transactionId: '', paymentType: 'full', notes: '' });
+      setIsRecordPaymentOpen(false);
+      setPaymentError(null);
+    } catch (err) {
+      console.error('Failed to create payment', err);
+      setPaymentError('Failed to record payment');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -176,7 +302,7 @@ export function PaymentsScreen() {
         </CardContent>
       </Card>
 
-      {/* Payment Detail Modal */}
+      {/* Payment Detail Modal (simplified to fix nesting) */}
       {selectedPayment && (
         <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
           <DialogContent className="sm:max-w-[600px]">
@@ -187,93 +313,59 @@ export function PaymentsScreen() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              {/* Cost Breakdown */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900">Cost Breakdown</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Original Amount:</span>
-                    <span className="font-medium">${selectedPayment.originalAmount}</span>
+            <div className="space-y-4 py-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Patient Responsibility</div>
+                    <div className="text-lg font-bold">${selectedPayment.finalAmount}</div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-emerald-600">Insurance Coverage:</span>
-                    <span className="font-medium text-emerald-600">-${selectedPayment.insuranceCoverage}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between">
-                    <span className="font-semibold">Patient Responsibility:</span>
-                    <span className="font-bold text-lg">${selectedPayment.finalAmount}</span>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-600">Paid</div>
+                    <div className="text-lg font-bold">${selectedPayment.amountPaid}</div>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Timeline */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900">Payment History</h3>
-                <div className="space-y-3">
-                  {selectedPayment.amountPaid > 0 && (
-                    <div className="flex gap-4 pb-3 border-b">
-                      <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                        <div className="w-px h-full bg-gray-200 mt-2" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">Payment Received</h4>
-                            <p className="text-sm text-gray-600">{selectedPayment.paymentMethod}</p>
-                            {selectedPayment.transactionId && (
-                              <p className="text-xs text-gray-500 mt-1">Transaction ID: {selectedPayment.transactionId}</p>
-                            )}
-                          </div>
-                          <div className="text-sm font-semibold text-emerald-600">+${selectedPayment.amountPaid}</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-semibold">Installment History</h4>
+                {loadingTransactions ? (
+                  <div>Loading transactions...</div>
+                ) : paymentTransactions.length === 0 ? (
+                  <div className="text-sm text-gray-400">No transactions recorded</div>
+                ) : (
+                  <div className="space-y-2 mt-2">
+                    {paymentTransactions.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center justify-between border-b py-2">
                         <div>
-                          <h4 className="font-semibold text-gray-900">Invoice Created</h4>
-                          <p className="text-sm text-gray-600">{selectedPayment.date}</p>
+                          <div className="text-sm font-medium">{tx.method}</div>
+                          {tx.transactionId && <div className="text-xs text-gray-500">TXN: {tx.transactionId}</div>}
                         </div>
-                        <div className="text-sm font-semibold text-gray-900">${selectedPayment.finalAmount}</div>
+                        <div className="font-semibold text-emerald-600">+${tx.amount}</div>
                       </div>
-                    </div>
+                    ))}
                   </div>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <Button onClick={() => setIsAddInstallmentOpen(true)}>Add Installment</Button>
+                  <Button variant="outline" onClick={async () => {
+                    if (!selectedPayment) return;
+                    try {
+                      const res = await updatePayment(selectedPayment.id, { amountPaid: selectedPayment.finalAmount, status: 'Paid' });
+                      const updated = res.payment || res;
+                      setPayments(prev => prev.map(p => p.id === updated.id ? ({ ...p, amountPaid: updated.amountPaid, status: updated.status }) : p));
+                      setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updated.amountPaid, status: updated.status }) : prev);
+                    } catch (err) {
+                      console.error('Failed to complete payment', err);
+                    }
+                  }}>Complete Payment</Button>
                 </div>
               </div>
-
-              {/* Remaining Balance */}
-              {selectedPayment.finalAmount - selectedPayment.amountPaid > 0 && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-amber-900">Remaining Balance</p>
-                      <p className="text-xs text-amber-700 mt-1">Payment required</p>
-                    </div>
-                    <div className="text-2xl font-bold text-amber-900">
-                      ${selectedPayment.finalAmount - selectedPayment.amountPaid}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedPayment(null)}>
-                Close
-              </Button>
-              {selectedPayment.finalAmount - selectedPayment.amountPaid > 0 && (
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Record Payment
-                </Button>
-              )}
+              <Button variant="outline" onClick={() => setSelectedPayment(null)}>Close</Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700">Record Payment</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -291,16 +383,33 @@ export function PaymentsScreen() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="patient-select">Patient</Label>
-              <Select>
+              <Select value={paymentForm.patientId} onValueChange={(v) => setPaymentForm({ ...paymentForm, patientId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select patient" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sarah">Sarah Johnson</SelectItem>
-                  <SelectItem value="michael">Michael Chen</SelectItem>
-                  <SelectItem value="emma">Emma Wilson</SelectItem>
+                  {patientsList.length ? patientsList.map((p: any) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  )) : (
+                    <SelectItem value="">No patients</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="insuranceCoverage">Insurance Coverage</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  id="insuranceCoverage"
+                  type="number"
+                  value={paymentForm.insuranceCoverage}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, insuranceCoverage: e.target.value })}
+                  className="pl-7"
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -335,13 +444,30 @@ export function PaymentsScreen() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transaction">Transaction ID (Optional)</Label>
+              <Label htmlFor="paymentType">Payment Type</Label>
+              <Select value={paymentForm.paymentType} onValueChange={(value) => setPaymentForm({ ...paymentForm, paymentType: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Paid (Pago completo)</SelectItem>
+                  <SelectItem value="partial">Partial / Abono</SelectItem>
+                  <SelectItem value="owes">Owes / Debe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="transaction">Transaction ID {paymentForm.method === 'credit-card' || paymentForm.method === 'debit-card' ? '(Required for card payments)' : '(Optional)'}</Label>
               <Input
                 id="transaction"
                 value={paymentForm.transactionId}
-                onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
+                onChange={(e) => { setPaymentForm({ ...paymentForm, transactionId: e.target.value }); setPaymentError(null); }}
                 placeholder="TXN-001234"
               />
+              {paymentError && (
+                <p className="text-sm text-red-600">{paymentError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -358,9 +484,77 @@ export function PaymentsScreen() {
             <Button variant="outline" onClick={() => setIsRecordPaymentOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setIsRecordPaymentOpen(false)} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={() => handleRecordPayment()} className="bg-emerald-600 hover:bg-emerald-700">
               Record Payment
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Installment Modal (for selected payment) */}
+      <Dialog open={isAddInstallmentOpen} onOpenChange={setIsAddInstallmentOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Installment</DialogTitle>
+            <DialogDescription>
+              Add an installment for invoice #{selectedPayment?.id}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input type="number" value={installmentForm.amount} onChange={(e) => setInstallmentForm({ ...installmentForm, amount: e.target.value })} className="pl-7" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Method</Label>
+              <Select value={installmentForm.method} onValueChange={(v) => setInstallmentForm({ ...installmentForm, method: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit-card">Credit Card</SelectItem>
+                  <SelectItem value="debit-card">Debit Card</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Transaction ID</Label>
+              <Input value={installmentForm.transactionId} onChange={(e) => setInstallmentForm({ ...installmentForm, transactionId: e.target.value })} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input value={installmentForm.notes} onChange={(e) => setInstallmentForm({ ...installmentForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddInstallmentOpen(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              if (!selectedPayment) return;
+              // require transaction id for card methods
+              if ((installmentForm.method === 'credit-card' || installmentForm.method === 'debit-card') && !String(installmentForm.transactionId || '').trim()) {
+                alert('Transaction ID required for card payments');
+                return;
+              }
+              try {
+                const res = await createPaymentTransaction(selectedPayment.id, { amount: Number(installmentForm.amount) || 0, method: installmentForm.method, transactionId: installmentForm.transactionId || undefined, notes: installmentForm.notes });
+                const tx = res.transaction || res;
+                const updatedPayment = res.payment || res;
+                setPaymentTransactions(prev => [...prev, tx]);
+                setPayments(prev => prev.map(p => p.id === updatedPayment.id ? ({ ...p, amountPaid: updatedPayment.amountPaid, status: updatedPayment.status }) : p));
+                setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updatedPayment.amountPaid, status: updatedPayment.status }) : prev);
+                setInstallmentForm({ amount: '', method: 'credit-card', transactionId: '', notes: '' });
+                setIsAddInstallmentOpen(false);
+              } catch (err) {
+                console.error('Failed adding installment', err);
+                alert('Failed adding installment');
+              }
+            }} className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge } from './StatusBadge';
 import { Shield, Search, Eye, TrendingDown, CheckCircle2, Plus, Edit, ArrowLeft, Trash2 } from 'lucide-react';
+import { getInsurances, createInsurance, createPlan, updatePlan, createProcedure, updateProcedure, deleteProcedure } from '../lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -54,8 +55,7 @@ export function InsuranceScreen() {
   const loadCompanies = async () => {
     setLoadingCompanies(true);
     try {
-      const api = (await import('../lib/api')).default;
-      const res = await api.getInsurances();
+      const res = await getInsurances();
       const list = res.insurances || res;
       setCompanies(list || []);
       return list || [];
@@ -76,8 +76,7 @@ export function InsuranceScreen() {
   const handleCreateCompany = async () => {
     if (!newCompanyName) return;
     try {
-      const api = (await import('../lib/api')).default;
-      await api.createInsurance({ name: newCompanyName });
+      await createInsurance({ name: newCompanyName });
       const list = await loadCompanies();
       // if we were viewing a company, keep selection stable
       if (selectedCompany) {
@@ -98,8 +97,7 @@ export function InsuranceScreen() {
     if (!selectedCompany) return;
     (async () => {
       try {
-        const api = (await import('../lib/api')).default;
-        const created = await api.createPlan(selectedCompany.id, { planName: newPlanData.planName, type: newPlanData.type });
+        const created = await createPlan(selectedCompany.id, { planName: newPlanData.planName, type: newPlanData.type });
         const list = await loadCompanies();
         const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
         setSelectedCompany(updated);
@@ -120,8 +118,7 @@ export function InsuranceScreen() {
     if (!editingPlan || !selectedCompany) return;
     (async () => {
       try {
-        const api = (await import('../lib/api')).default;
-        await api.updatePlan(editingPlan.id, { planName: editingPlan.planName, type: editingPlan.type });
+        await updatePlan(editingPlan.id, { planName: editingPlan.planName, type: editingPlan.type });
         const list = await loadCompanies();
         const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
         setSelectedCompany(updated);
@@ -143,8 +140,7 @@ export function InsuranceScreen() {
     if (!selectedPlan || !selectedCompany) return;
     (async () => {
       try {
-        const api = (await import('../lib/api')).default;
-        const created = await api.createProcedure(selectedPlan.id, { name: newProcedure.name, coverageAmount: newProcedure.coverageAmount, copayPercent: newProcedure.copayPercent });
+        const created = await createProcedure(selectedPlan.id, { name: newProcedure.name, coverageAmount: newProcedure.coverageAmount, copayPercent: newProcedure.copayPercent });
         const list = await loadCompanies();
         const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
         setSelectedCompany(updated);
@@ -166,8 +162,7 @@ export function InsuranceScreen() {
     if (!editingProcedure || !selectedPlan || !selectedCompany) return;
     (async () => {
       try {
-        const api = (await import('../lib/api')).default;
-        await api.updateProcedure(editingProcedure.id, { name: editingProcedure.name, coverageAmount: editingProcedure.coverageAmount, copayPercent: editingProcedure.copayPercent });
+        await updateProcedure(editingProcedure.id, { name: editingProcedure.name, coverageAmount: editingProcedure.coverageAmount, copayPercent: editingProcedure.copayPercent });
         const list = await loadCompanies();
         const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
         setSelectedCompany(updated);
@@ -189,8 +184,7 @@ export function InsuranceScreen() {
     if (!selectedPlan || !selectedCompany) return;
     (async () => {
       try {
-        const api = (await import('../lib/api')).default;
-        await api.deleteProcedure(procedureId);
+        await deleteProcedure(procedureId);
         const list = await loadCompanies();
         const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
         setSelectedCompany(updated);

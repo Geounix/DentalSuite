@@ -27,21 +27,17 @@ interface ToothData {
 }
 
 import { useEffect } from 'react';
-import { getProcedures, createDentalProcedure, getUsers } from '../lib/api';
+import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure } from '../lib/api';
 
 export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
-  const [teethData, setTeethData] = useState<Map<number, ToothData>>(new Map([
-    [18, { number: 18, procedures: [
-      { id: '1', condition: 'Cavity', treatment: 'Composite Filling', status: 'Completed', doctor: 'Dr. Smith', cost: 250, date: '2026-01-05', notes: 'MOD cavity filled successfully' }
-    ]}],
-    [25, { number: 25, procedures: [
-      { id: '2', condition: 'Root Canal Required', treatment: 'Root Canal Therapy', status: 'In Progress', doctor: 'Dr. Martinez', cost: 850, date: '2026-01-10', notes: 'Session 1 completed, crown pending' }
-    ]}],
-    [36, { number: 36, procedures: [
-      { id: '3', condition: 'Missing Tooth', treatment: 'Dental Implant', status: 'Planned', doctor: 'Dr. Smith', cost: 2500, date: '2026-01-20' }
-    ]}],
-  ]));
+  const [teethData, setTeethData] = useState<Map<number, ToothData>>(new Map());
+  const [patientName, setPatientName] = useState<string | null>(null);
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [treatmentOptions, setTreatmentOptions] = useState<string[]>([]);
+  const [conditionOptions, setConditionOptions] = useState<string[]>([]);
+  const DEFAULT_TREATMENTS = ['Composite Filling','Root Canal Therapy','Crown Placement','Dental Implant','Extraction','Cleaning & Scaling'];
+  const DEFAULT_CONDITIONS = ['Cavity','Root Canal Required','Crown Needed','Missing Tooth','Gum Disease','Fracture'];
 
   const [newProcedure, setNewProcedure] = useState<Partial<Procedure>>({
     condition: '',
@@ -59,8 +55,16 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     async function load() {
       try {
         const [procsRes, usersRes] = await Promise.all([getProcedures(), getUsers()]);
-        const procs = procsRes.procedures || [];
         const users = usersRes.users || [];
+        if (mounted) setUsersList(users);
+        // load patient name
+        try {
+          const p = await getPatient(patientId);
+          if (mounted && p && p.patient) setPatientName(p.patient.name);
+        } catch (err) {
+          // fallback: ignore
+        }
+        const procs = procsRes.procedures || [];
 
         const map = new Map<number, ToothData>();
         procs.filter((p: any) => p.patientId === patientId).forEach((p: any) => {
@@ -83,8 +87,19 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
         });
 
         if (!mounted) return;
-        // merge with current teethData
-        const newMap = new Map(teethData);
+        // build dynamic treatment/condition options from procedures
+        const treatmentsSet = new Set<string>(DEFAULT_TREATMENTS);
+        const conditionsSet = new Set<string>(DEFAULT_CONDITIONS);
+        procs.forEach((p: any) => {
+          if (p.treatment) treatmentsSet.add(p.treatment);
+          if (p.condition) conditionsSet.add(p.condition);
+        });
+        if (mounted) {
+          setTreatmentOptions(Array.from(treatmentsSet));
+          setConditionOptions(Array.from(conditionsSet));
+        }
+        // merge with current teethData (replace entries from API)
+        const newMap = new Map<number, ToothData>(teethData);
         map.forEach((v, k) => newMap.set(k, v));
         setTeethData(newMap);
       } catch (err) {
@@ -94,6 +109,22 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     load();
     return () => { mounted = false; };
   }, [patientId]);
+
+  // when opening a tooth, prefill doctor if available
+  useEffect(() => {
+    if (selectedTooth !== null) {
+      const today = new Date().toISOString().split('T')[0];
+      setNewProcedure({
+        condition: '',
+        treatment: '',
+        status: 'Planned',
+        doctor: usersList.length ? usersList[0].name : 'Dr. Smith',
+        cost: 0,
+        date: today,
+        notes: ''
+      });
+    }
+  }, [selectedTooth, usersList]);
 
   // Tooth numbering (FDI notation)
   const upperTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -202,13 +233,52 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
   };
 
   const selectedToothData = selectedTooth ? teethData.get(selectedTooth) : undefined;
+  const [procEdits, setProcEdits] = useState<Record<string, { status?: string; notes?: string; cost?: number }>>({});
+
+  const handleUpdateProcedure = async (procId: string) => {
+    const edit = procEdits[procId];
+    if (!edit) return;
+    try {
+      const payload: any = {};
+      if (edit.status) payload.status = edit.status.toLowerCase();
+      if (typeof edit.cost === 'number') payload.cost = edit.cost;
+      if (edit.notes) payload.notes = edit.notes;
+      const res = await updateDentalProcedure(procId as any, payload);
+      const updated = res.procedure || res;
+
+      // update local teethData
+      const newTeeth = new Map(teethData);
+      for (const [toothNum, td] of newTeeth.entries()) {
+        const idx = td.procedures.findIndex((p) => String(p.id) === String(procId));
+        if (idx !== -1) {
+          const updatedProc = {
+            ...td.procedures[idx],
+            status: updated.status === 'planned' ? 'Planned' : (updated.status === 'in progress' ? 'In Progress' : (updated.status === 'completed' ? 'Completed' : updated.status)),
+            cost: updated.cost ?? td.procedures[idx].cost,
+            notes: updated.notes ?? td.procedures[idx].notes,
+            date: updated.date ? new Date(updated.date).toISOString().split('T')[0] : td.procedures[idx].date
+          };
+          const newProcs = [...td.procedures];
+          newProcs[idx] = updatedProc;
+          newTeeth.set(toothNum, { ...td, procedures: newProcs });
+          break;
+        }
+      }
+      setTeethData(newTeeth);
+      // clear edit state for this proc
+      setProcEdits(prev => { const copy = { ...prev }; delete copy[procId]; return copy; });
+    } catch (err) {
+      console.error('Failed updating procedure', err);
+      alert('Failed to update procedure');
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Odontogram</h1>
-        <p className="text-gray-600 mt-1">Interactive dental chart for patient: Sarah Johnson</p>
+        <p className="text-gray-600 mt-1">Interactive dental chart for patient: {patientName ?? `#${patientId}`}</p>
       </div>
 
       {/* Legend */}
@@ -375,9 +445,51 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                               </div>
                             </div>
                             <p className="text-sm text-gray-600">Doctor: {procedure.doctor}</p>
-                            {procedure.notes && (
-                              <p className="text-sm text-gray-500 italic bg-gray-50 p-2 rounded">{procedure.notes}</p>
-                            )}
+                            <div className="mt-4 space-y-3">
+                              <div>
+                                <Label>Notes</Label>
+                                <Textarea
+                                  value={procEdits[String(procedure.id)]?.notes ?? procedure.notes ?? ''}
+                                  onChange={(e) => setProcEdits(prev => ({ ...prev, [String(procedure.id)]: { ...prev[String(procedure.id)], notes: e.target.value } }))}
+                                  placeholder="Add notes for this procedure"
+                                  rows={3}
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label>Cost ($)</Label>
+                                  <Input
+                                    type="number"
+                                    value={procEdits[String(procedure.id)]?.cost ?? procedure.cost ?? 0}
+                                    onChange={(e) => setProcEdits(prev => ({ ...prev, [String(procedure.id)]: { ...prev[String(procedure.id)], cost: parseFloat(e.target.value) } }))}
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label>Status</Label>
+                                  <Select value={(procEdits[String(procedure.id)]?.status) || procedure.status} onValueChange={(value: any) => setProcEdits(prev => ({ ...prev, [String(procedure.id)]: { ...prev[String(procedure.id)], status: value } }))}>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Planned">Planned</SelectItem>
+                                      <SelectItem value="In Progress">In Progress</SelectItem>
+                                      <SelectItem value="Completed">Completed</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-3">
+                                <Button onClick={() => handleUpdateProcedure(String(procedure.id))} className="h-10">
+                                  Save
+                                </Button>
+                                <Button variant="outline" className="h-10" onClick={() => setProcEdits(prev => { const c = { ...prev }; delete c[String(procedure.id)]; return c; })}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -394,33 +506,27 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Condition</Label>
-                    <Select value={newProcedure.condition} onValueChange={(value) => setNewProcedure({ ...newProcedure, condition: value })}>
+                    <Select value={newProcedure.condition || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, condition: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select condition" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Cavity">Cavity</SelectItem>
-                        <SelectItem value="Root Canal Required">Root Canal Required</SelectItem>
-                        <SelectItem value="Crown Needed">Crown Needed</SelectItem>
-                        <SelectItem value="Missing Tooth">Missing Tooth</SelectItem>
-                        <SelectItem value="Gum Disease">Gum Disease</SelectItem>
-                        <SelectItem value="Fracture">Fracture</SelectItem>
+                        {(conditionOptions.length ? conditionOptions : ["Cavity","Root Canal Required","Crown Needed","Missing Tooth","Gum Disease","Fracture"]).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Treatment</Label>
-                    <Select value={newProcedure.treatment} onValueChange={(value) => setNewProcedure({ ...newProcedure, treatment: value })}>
+                    <Select value={newProcedure.treatment || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, treatment: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select treatment" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Composite Filling">Composite Filling</SelectItem>
-                        <SelectItem value="Root Canal Therapy">Root Canal Therapy</SelectItem>
-                        <SelectItem value="Crown Placement">Crown Placement</SelectItem>
-                        <SelectItem value="Dental Implant">Dental Implant</SelectItem>
-                        <SelectItem value="Extraction">Extraction</SelectItem>
-                        <SelectItem value="Cleaning & Scaling">Cleaning & Scaling</SelectItem>
+                        {(treatmentOptions.length ? treatmentOptions : ["Composite Filling","Root Canal Therapy","Crown Placement","Dental Implant","Extraction","Cleaning & Scaling"]).map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -442,13 +548,19 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   </div>
                   <div className="space-y-2">
                     <Label>Doctor</Label>
-                    <Select value={newProcedure.doctor} onValueChange={(value) => setNewProcedure({ ...newProcedure, doctor: value })}>
+                    <Select value={newProcedure.doctor || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, doctor: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Dr. Smith">Dr. Smith</SelectItem>
-                        <SelectItem value="Dr. Martinez">Dr. Martinez</SelectItem>
+                        {usersList.length ? usersList.map((u) => (
+                          <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                        )) : (
+                          <>
+                            <SelectItem value="Dr. Smith">Dr. Smith</SelectItem>
+                            <SelectItem value="Dr. Martinez">Dr. Martinez</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

@@ -3,25 +3,72 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Calendar, DollarSign, CreditCard, TrendingUp, UserPlus, CalendarPlus, Wallet, Clock } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
+import { useEffect, useState } from 'react';
+import { getAppointments, getPayments, getPatients } from '../lib/api';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
 }
 
 export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
-  const recentActivities = [
-    { id: 1, type: 'appointment', patient: 'Sarah Johnson', action: 'Appointment completed', time: '10 minutes ago', doctor: 'Dr. Smith' },
-    { id: 2, type: 'payment', patient: 'Michael Chen', action: 'Payment received', time: '25 minutes ago', amount: '$350' },
-    { id: 3, type: 'patient', patient: 'Emma Wilson', action: 'New patient registered', time: '1 hour ago', doctor: 'Dr. Martinez' },
-    { id: 4, type: 'appointment', patient: 'James Brown', action: 'Appointment scheduled', time: '2 hours ago', doctor: 'Dr. Smith' },
-    { id: 5, type: 'payment', patient: 'Lisa Anderson', action: 'Insurance claim processed', time: '3 hours ago', amount: '$500' },
-  ];
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [kpis, setKpis] = useState({ todaysAppointments: 0, monthlyRevenue: 0, outstandingPayments: 0, insuranceSavings: 0 });
 
-  const upcomingAppointments = [
-    { id: 1, time: '10:00 AM', patient: 'Robert Garcia', procedure: 'Root Canal', doctor: 'Dr. Smith', status: 'Scheduled' },
-    { id: 2, time: '11:30 AM', patient: 'Jennifer Lee', procedure: 'Teeth Cleaning', doctor: 'Dr. Martinez', status: 'Scheduled' },
-    { id: 3, time: '2:00 PM', patient: 'David Kim', procedure: 'Crown Placement', doctor: 'Dr. Smith', status: 'Scheduled' },
-  ];
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const [apptsRes, paysRes, patsRes] = await Promise.all([getAppointments(), getPayments(), getPatients()]);
+        if (!mounted) return;
+        const appts = apptsRes.appointments || apptsRes || [];
+        const pays = paysRes.payments || paysRes || [];
+        const pats = patsRes.patients || patsRes || [];
+
+        // Today's appointments
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1);
+        const todaysAppts = appts.filter((a: any) => {
+          const dt = new Date(a.scheduledAt || a.date || a.createdAt);
+          return dt >= startOfDay && dt < endOfDay;
+        });
+
+        // Upcoming (next few) appointments for Today sorted
+        const upcoming = todaysAppts
+          .map((a: any) => ({ id: a.id, time: new Date(a.scheduledAt || a.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), patient: pats.find((p: any) => p.id === a.patientId)?.name || `#${a.patientId}`, procedure: a.procedure || '', doctor: a.doctorName || '', status: a.status || 'Scheduled' }))
+          .sort((x: any, y: any) => x.time.localeCompare(y.time))
+          .slice(0, 6);
+
+        // Monthly revenue: sum payments created this month
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthlyRevenue = pays.filter((p: any) => new Date(p.createdAt) >= monthStart).reduce((s: number, p: any) => s + (p.amountPaid || p.finalAmount || 0), 0);
+
+        // Outstanding payments
+        const outstanding = pays.reduce((s: number, p: any) => s + ( (p.finalAmount || 0) - (p.amountPaid || 0) ), 0);
+
+        // Insurance savings (sum of insuranceCoverage this month)
+        const insuranceSavings = pays.filter((p: any) => new Date(p.createdAt) >= monthStart).reduce((s: number, p: any) => s + (p.insuranceCoverage || 0), 0);
+
+        // Recent activities: combine last 8 from appointments/payments/patients
+        const recentFromAppts = appts.slice().sort((a: any,b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()).slice(0,5).map((a: any) => ({ id: `a-${a.id}`, type: 'appointment', patient: pats.find((p: any) => p.id === a.patientId)?.name || `#${a.patientId}`, action: a.status ? `Appointment ${a.status}` : 'Appointment updated', time: new Date(a.updatedAt || a.createdAt).toLocaleString(), doctor: a.doctorName || '' }));
+        const recentFromPays = pays.slice().sort((a: any,b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0,5).map((p: any) => ({ id: `p-${p.id}`, type: 'payment', patient: pats.find((pt: any) => pt.id === p.patientId)?.name || `#${p.patientId}`, action: 'Payment recorded', time: new Date(p.createdAt).toLocaleString(), amount: `$${p.amountPaid || p.finalAmount || 0}` }));
+        const recentFromPats = pats.slice().sort((a: any,b: any) => b.id - a.id).slice(0,3).map((p: any) => ({ id: `u-${p.id}`, type: 'patient', patient: p.name, action: 'New patient registered', time: p.createdAt ? new Date(p.createdAt).toLocaleString() : '' }));
+
+        const recent = [...recentFromAppts, ...recentFromPays, ...recentFromPats].slice(0,8);
+
+        setKpis({ todaysAppointments: todaysAppts.length, monthlyRevenue, outstandingPayments: outstanding, insuranceSavings });
+        setUpcomingAppointments(upcoming);
+        setRecentActivities(recent);
+      } catch (err) {
+        console.error('Failed loading dashboard data', err);
+      }
+    }
+
+    load();
+    return () => { mounted = false; };
+  }, [onNavigate]);
 
   return (
     <div className="space-y-6">
@@ -35,27 +82,27 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Today's Appointments"
-          value={12}
+          value={kpis.todaysAppointments}
           icon={Calendar}
-          trend={{ value: '2 more than yesterday', isPositive: true }}
+          trend={{ value: '', isPositive: true }}
         />
         <KPICard
           title="Monthly Revenue"
-          value="$48,350"
+          value={`$${kpis.monthlyRevenue.toLocaleString()}`}
           icon={DollarSign}
-          trend={{ value: '12% from last month', isPositive: true }}
+          trend={{ value: '', isPositive: true }}
         />
         <KPICard
           title="Outstanding Payments"
-          value="$8,420"
+          value={`$${kpis.outstandingPayments.toLocaleString()}`}
           icon={CreditCard}
-          description="From 15 patients"
+          description="Pending balances"
         />
         <KPICard
           title="Insurance Savings"
-          value="$12,680"
+          value={`$${kpis.insuranceSavings.toLocaleString()}`}
           icon={TrendingUp}
-          trend={{ value: '8% this month', isPositive: true }}
+          trend={{ value: '', isPositive: true }}
         />
       </div>
 
@@ -69,21 +116,31 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Button 
               className="h-auto py-4 flex flex-col items-center gap-2 bg-blue-600 hover:bg-blue-700"
-              onClick={() => onNavigate('patients')}
+              onClick={() => {
+                if (typeof onNavigate === 'function') onNavigate('patients');
+                // always dispatch event to open create modal even if onNavigate not provided
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-patient')), 200);
+              }}
             >
               <UserPlus className="w-6 h-6" />
               <span>New Patient</span>
             </Button>
             <Button 
               className="h-auto py-4 flex flex-col items-center gap-2 bg-teal-600 hover:bg-teal-700"
-              onClick={() => onNavigate('appointments')}
+              onClick={() => {
+                if (typeof onNavigate === 'function') onNavigate('appointments');
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-appointment')), 200);
+              }}
             >
               <CalendarPlus className="w-6 h-6" />
               <span>New Appointment</span>
             </Button>
             <Button 
               className="h-auto py-4 flex flex-col items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => onNavigate('payments')}
+              onClick={() => {
+                if (typeof onNavigate === 'function') onNavigate('payments');
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:record-payment')), 200);
+              }}
             >
               <Wallet className="w-6 h-6" />
               <span>Record Payment</span>

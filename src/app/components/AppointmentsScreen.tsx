@@ -92,6 +92,10 @@ export function AppointmentsScreen() {
     }
 
     fetchData();
+    // listen for dashboard quick action
+    const onOpenCreate = () => setIsCreateModalOpen(true);
+    window.addEventListener('open:create-appointment', onOpenCreate as EventListener);
+    return () => { window.removeEventListener('open:create-appointment', onOpenCreate as EventListener); };
   }, []);
 
   const formatDate = (date: Date) =>

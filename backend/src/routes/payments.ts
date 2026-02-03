@@ -25,6 +25,40 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// transactions for a payment
+router.get('/:id/transactions', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const txs = await prisma.paymentTransaction.findMany({ where: { paymentId: id }, orderBy: { createdAt: 'asc' } });
+    res.json({ transactions: txs });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/:id/transactions', async (req, res) => {
+  try {
+    const paymentId = Number(req.params.id);
+    const { amount, method, transactionId, notes } = req.body;
+    if (amount == null) return res.status(400).json({ error: 'Missing amount' });
+
+    // create transaction
+    const tx = await prisma.paymentTransaction.create({ data: { paymentId, amount: Number(amount), method, transactionId, notes } });
+
+    // update payment totals and status
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) return res.status(404).json({ error: 'Payment not found' });
+    const newAmountPaid = (payment.amountPaid || 0) + Number(amount);
+    const newStatus = newAmountPaid >= payment.finalAmount ? 'paid' : 'partial';
+    const updated = await prisma.payment.update({ where: { id: paymentId }, data: { amountPaid: newAmountPaid, status: newStatus } });
+
+    res.status(201).json({ transaction: tx, payment: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const { patientId, appointmentId, originalAmount, insuranceCoverage = 0, amountPaid = 0, paymentMethod, transactionId } = req.body;

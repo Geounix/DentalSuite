@@ -40,6 +40,11 @@ export const getPatients = async () => {
   return data; // { patients: [...] }
 };
 
+export const getPatient = async (id: number) => {
+  const { data } = await api.get(`/api/patients/${id}`);
+  return data; // { patient: {...} }
+};
+
 export const createPatient = async (payload: {
   name: string;
   email: string;
@@ -295,4 +300,49 @@ export const updateAppointment = async (
 export const deleteAppointment = async (id: number) => {
   const { data } = await api.delete(`/api/appointments/${id}`);
   return data;
+};
+
+// ---------------- PAYMENTS ----------------
+export const getPayments = async () => {
+  const { data } = await api.get('/api/payments');
+  return data; // { payments: [...] }
+};
+
+export const getPayment = async (id: number) => {
+  const { data } = await api.get(`/api/payments/${id}`);
+  return data; // { payment: {...} }
+};
+
+export const createPayment = async (payload: {
+  patientId: number;
+  appointmentId?: number | null;
+  originalAmount: number;
+  insuranceCoverage?: number;
+  amountPaid?: number;
+  paymentMethod?: string;
+  transactionId?: string;
+  notes?: string;
+}) => {
+  const { data } = await api.post('/api/payments', payload);
+  return data; // { payment: {...} }
+};
+
+export const updatePayment = async (id: number, payload: any) => {
+  const { data } = await api.put(`/api/payments/${id}`, payload);
+  return data;
+};
+
+export const deletePayment = async (id: number) => {
+  const { data } = await api.delete(`/api/payments/${id}`);
+  return data;
+};
+
+export const getPaymentTransactions = async (paymentId: number) => {
+  const { data } = await api.get(`/api/payments/${paymentId}/transactions`);
+  return data; // { transactions: [...] }
+};
+
+export const createPaymentTransaction = async (paymentId: number, payload: { amount: number; method?: string; transactionId?: string; notes?: string }) => {
+  const { data } = await api.post(`/api/payments/${paymentId}/transactions`, payload);
+  return data; // { transaction: {...}, payment: {...} }
 };

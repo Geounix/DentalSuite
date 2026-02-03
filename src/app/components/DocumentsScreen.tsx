@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { FileText, Upload, Download, Eye, Trash2, Search, Image, FileCheck, File } from 'lucide-react';
+import { getDocuments, uploadDocument, deleteDocument } from '../lib/api';
 // StatusBadge removed; not used in this screen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
@@ -25,6 +26,25 @@ export function DocumentsScreen() {
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+  const handleDownload = async (doc: DocumentItem) => {
+    try {
+      const res = await fetch(`${API_BASE}/uploads/${doc.key}`);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.filename || doc.key;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('download error', err);
+      alert('Failed to download file');
+    }
+  };
 
   const filteredDocuments = documents.filter((doc) => {
     const name = (doc.filename || '').toLowerCase();
@@ -60,7 +80,7 @@ export function DocumentsScreen() {
   const loadDocuments = async () => {
     setLoading(true);
     try {
-      const res = await (await import('../lib/api')).default.getDocuments();
+      const res = await getDocuments();
       const list = res.documents || res;
       setDocuments(list || []);
     } catch (err) {
@@ -77,8 +97,7 @@ export function DocumentsScreen() {
     for (const f of files) {
       try {
         setUploading((s) => ({ ...s, [f.name]: true }));
-        const api = (await import('../lib/api')).default;
-        const res = await api.uploadDocument(f);
+        const res = await uploadDocument(f);
         await loadDocuments();
       } catch (err: any) {
         console.error('upload error', err);
@@ -105,8 +124,7 @@ export function DocumentsScreen() {
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this document?')) return;
     try {
-      const api = (await import('../lib/api')).default;
-      await api.deleteDocument(id);
+      await deleteDocument(id);
       await loadDocuments();
     } catch (err) {
       console.error('delete error', err);
@@ -194,11 +212,9 @@ export function DocumentsScreen() {
                           <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE}/uploads/${doc.key}`, '_blank')}>
                             <Eye className="w-3 h-3" />
                           </Button>
-                          <a href={`${API_BASE}/uploads/${doc.key}`} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="sm">
-                              <Download className="w-3 h-3" />
-                            </Button>
-                          </a>
+                          <Button variant="outline" size="sm" onClick={() => handleDownload(doc)}>
+                            <Download className="w-3 h-3" />
+                          </Button>
                           <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(doc.id)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
@@ -231,11 +247,9 @@ export function DocumentsScreen() {
                       <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE}/uploads/${doc.key}`, '_blank')}>
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <a href={`${API_BASE}/uploads/${doc.key}`} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </a>
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(doc)}>
+                        <Download className="w-4 h-4" />
+                      </Button>
                       <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(doc.id)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>

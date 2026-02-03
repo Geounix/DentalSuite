@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPatients, createPatient, updatePatient, getAppointments, getUsers } from '../lib/api';
+import { getPatients, createPatient, updatePatient, getAppointments, getUsers, getProcedures, getPayments } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -95,6 +95,13 @@ export function PatientsScreen() {
       alert('Error creating patient');
     }
   };
+
+  // Listen for external open-create events (from dashboard quick actions)
+  useEffect(() => {
+    const onOpen = () => setIsCreateModalOpen(true);
+    window.addEventListener('open:create-patient', onOpen as EventListener);
+    return () => { window.removeEventListener('open:create-patient', onOpen as EventListener); };
+  }, []);
 
   // Editar paciente
   const handleEditPatient = async () => {
@@ -406,6 +413,36 @@ export function PatientsScreen() {
 
 // Patient Profile with Tabs
 function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: () => void }) {
+  const [patientPayments, setPatientPayments] = useState<any[]>([]);
+  const [loadingPatientPayments, setLoadingPatientPayments] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadPayments() {
+      try {
+        setLoadingPatientPayments(true);
+        const res = await getPayments();
+        const pays = (res.payments || []).filter((p: any) => p.patientId === patient.id).map((p: any) => ({
+          id: p.id,
+          date: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : (p.date || ''),
+          description: p.procedure || p.notes || 'Payment',
+          amount: p.originalAmount || 0,
+          insurance: p.insuranceCoverage || 0,
+          finalAmount: p.finalAmount || 0,
+          amountPaid: p.amountPaid || 0,
+          status: p.status ?? (p.amountPaid >= p.finalAmount ? 'Paid' : (p.amountPaid > 0 ? 'Partial' : 'Pending'))
+        }));
+        if (!mounted) return;
+        setPatientPayments(pays);
+      } catch (err) {
+        console.error('Failed loading patient payments', err);
+      } finally {
+        if (mounted) setLoadingPatientPayments(false);
+      }
+    }
+    loadPayments();
+    return () => { mounted = false; };
+  }, [patient.id]);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -488,55 +525,21 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
                 <CardTitle>Upcoming Appointments</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {patient.nextAppointment && (
-                    <div className="flex justify-between items-start p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div>
-                        <p className="font-medium text-gray-900">6-Month Checkup</p>
-                        <p className="text-sm text-gray-600">Dr. Smith</p>
-                        <p className="text-xs text-gray-500 mt-1">{patient.nextAppointment}</p>
-                      </div>
-                      <StatusBadge status="Scheduled" />
-                    </div>
-                  )}
-                </div>
+                <UpcomingAppointments patientId={patient.id} />
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Medical History Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { date: '2026-01-05', type: 'Procedure', title: 'Professional Cleaning', doctor: 'Dr. Smith', notes: 'Regular cleaning completed. No issues found.' },
-                  { date: '2025-12-15', type: 'Procedure', title: 'Root Canal Therapy - Session 2', doctor: 'Dr. Martinez', notes: 'Root canal completed successfully. Crown placement scheduled.' },
-                  { date: '2025-11-28', type: 'Consultation', title: 'Root Canal Consultation', doctor: 'Dr. Martinez', notes: 'Patient experiencing pain in tooth #18. Root canal recommended.' },
-                ].map((record, index) => (
-                  <div key={index} className="flex gap-4 pb-4 border-b last:border-0">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                      {index !== 2 && <div className="w-px h-full bg-gray-200 mt-2" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{record.title}</h4>
-                          <p className="text-sm text-gray-600">{record.doctor}</p>
-                        </div>
-                        <div className="text-sm text-gray-500">{record.date}</div>
-                      </div>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{record.notes}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Medical History Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PatientMedicalHistory patientId={patient.id} />
+              </CardContent>
+            </Card>
         </TabsContent>
 
         <TabsContent value="odontogram">
@@ -560,20 +563,25 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>2026-01-05</TableCell>
-                    <TableCell>Teeth Cleaning</TableCell>
-                    <TableCell>$150</TableCell>
-                    <TableCell>$100</TableCell>
-                    <TableCell><StatusBadge status="Paid" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>2025-12-15</TableCell>
-                    <TableCell>Root Canal Therapy</TableCell>
-                    <TableCell>$850</TableCell>
-                    <TableCell>$500</TableCell>
-                    <TableCell><StatusBadge status="Paid" /></TableCell>
-                  </TableRow>
+                  {loadingPatientPayments ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>Loading payments...</TableCell>
+                    </TableRow>
+                  ) : patientPayments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-sm text-gray-400">No payments found for this patient</TableCell>
+                    </TableRow>
+                  ) : (
+                    patientPayments.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-gray-600">{p.date}</TableCell>
+                        <TableCell className="text-gray-600">{p.description}</TableCell>
+                        <TableCell className="text-gray-600">${p.amount}</TableCell>
+                        <TableCell className="text-emerald-600 font-medium">-${p.insurance}</TableCell>
+                        <TableCell><StatusBadge status={p.status} /></TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -614,15 +622,19 @@ function RecentAppointments({ patientId }: { patientId: number }) {
     async function load() {
       try {
         const [apptsRes, usersRes] = await Promise.all([getAppointments(), getUsers()]);
+        const twoMonthsFromNow = new Date();
+        twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
         const appts = (apptsRes.appointments || [])
           .filter((a: any) => a.patientId === patientId)
-          .sort((a: any, b: any) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+          .map((a: any) => ({ ...a, scheduledAt: new Date(a.scheduledAt) }))
+          .filter((a: any) => a.scheduledAt < twoMonthsFromNow) // recent: less than 2 months from now (past or near future)
+          .sort((a: any, b: any) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
           .slice(0, 5)
           .map((a: any) => ({
             id: a.id,
             procedure: a.procedure,
             doctorName: usersRes.users?.find((u: any) => u.id === a.doctorId)?.name || 'Unknown',
-            date: new Date(a.scheduledAt).toISOString().split('T')[0],
+            date: a.scheduledAt.toISOString().split('T')[0],
             status: a.status || 'scheduled'
           }));
         if (!mounted) return;
@@ -650,6 +662,127 @@ function RecentAppointments({ patientId }: { patientId: number }) {
             <p className="text-xs text-gray-500 mt-1">{appt.date}</p>
           </div>
           <StatusBadge status={appt.status} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Upcoming appointments (more than 2 months from now)
+function UpcomingAppointments({ patientId }: { patientId: number }) {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const [apptsRes, usersRes] = await Promise.all([getAppointments(), getUsers()]);
+        const twoMonthsFromNow = new Date();
+        twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
+        const appts = (apptsRes.appointments || [])
+          .filter((a: any) => a.patientId === patientId)
+          .map((a: any) => ({ ...a, scheduledAt: new Date(a.scheduledAt) }))
+          .filter((a: any) => a.scheduledAt >= twoMonthsFromNow) // upcoming: >= 2 months from now
+          .sort((a: any, b: any) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+          .slice(0, 5)
+          .map((a: any) => ({
+            id: a.id,
+            procedure: a.procedure,
+            doctorName: usersRes.users?.find((u: any) => u.id === a.doctorId)?.name || 'Unknown',
+            date: a.scheduledAt.toISOString().split('T')[0],
+            status: a.status || 'scheduled'
+          }));
+        if (!mounted) return;
+        setAppointments(appts);
+      } catch (err) {
+        console.error('Failed loading upcoming appointments', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [patientId]);
+
+  if (loading) return <div>Loading appointments...</div>;
+  if (appointments.length === 0) return <div className="text-sm text-gray-400">No upcoming appointments</div>;
+
+  return (
+    <div className="space-y-3">
+      {appointments.map(appt => (
+        <div key={appt.id} className="flex justify-between items-start p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div>
+            <p className="font-medium text-gray-900">{appt.procedure}</p>
+            <p className="text-sm text-gray-600">{appt.doctorName}</p>
+            <p className="text-xs text-gray-500 mt-1">{appt.date}</p>
+          </div>
+          <StatusBadge status={appt.status} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Patient medical history derived from dental procedures
+function PatientMedicalHistory({ patientId }: { patientId: number }) {
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const [procsRes, usersRes] = await Promise.all([getProcedures(), getUsers()]);
+        const procs = (procsRes.procedures || []).filter((p: any) => p.patientId === patientId);
+        const users = usersRes.users || [];
+
+        const mapped = procs.map((p: any) => ({
+          id: p.id,
+          date: p.date ? new Date(p.date).toISOString().split('T')[0] : '',
+          type: 'Procedure',
+          title: p.treatment || p.condition || 'Procedure',
+          doctor: users.find((u: any) => u.id === p.doctorId)?.name || 'Unknown',
+          notes: p.notes || ''
+        })).sort((a: any, b: any) => {
+          const da = a.date ? new Date(a.date).getTime() : 0;
+          const db = b.date ? new Date(b.date).getTime() : 0;
+          return db - da;
+        });
+
+        if (!mounted) return;
+        setRecords(mapped);
+      } catch (err) {
+        console.error('Failed loading medical history', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [patientId]);
+
+  if (loading) return <div>Loading medical history...</div>;
+  if (records.length === 0) return <div className="text-sm text-gray-400">No medical history available</div>;
+
+  return (
+    <div className="space-y-4">
+      {records.map((record: any, index: number) => (
+        <div key={record.id || index} className="flex gap-4 pb-4 border-b last:border-0">
+          <div className="flex flex-col items-center">
+            <div className="w-3 h-3 rounded-full bg-blue-500" />
+            {index !== records.length - 1 && <div className="w-px h-full bg-gray-200 mt-2" />}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h4 className="font-semibold text-gray-900">{record.title}</h4>
+                <p className="text-sm text-gray-600">{record.doctor}</p>
+              </div>
+              <div className="text-sm text-gray-500">{record.date}</div>
+            </div>
+            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{record.notes}</p>
+          </div>
         </div>
       ))}
     </div>
