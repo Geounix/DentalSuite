@@ -1,6 +1,6 @@
 import { LanguageSwitcher } from './components/LanguageSwitcher';
-import { useState } from 'react';
-import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { LoginScreen } from './components/LoginScreen';
 import { DashboardScreen } from './components/DashboardScreen';
@@ -35,6 +35,7 @@ import {
 
 import { Avatar, AvatarFallback } from './components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './components/ui/dropdown-menu';
+import { getAppointments, getPatients } from './lib/api';
 
 type Screen = 
   | 'dashboard' 
@@ -63,6 +64,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
     : 'U';
@@ -177,10 +179,21 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
 
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <div className="px-3 py-2 border-b">
+                  <p className="text-sm font-medium">Upcoming appointments</p>
+                  <p className="text-xs text-gray-500">Next 60 minutes</p>
+                </div>
+                <UpcomingNotifications />
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Settings */}
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -238,6 +251,83 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
             </Routes>
           </div>
         </main>
+      </div>
+    </div>
+  );
+}
+
+function UpcomingNotifications() {
+  const [items, setItems] = useState<any[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    let timer: any;
+
+    async function load() {
+      try {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10);
+        const apptsRes: any = await getAppointments(dateStr);
+        const patsRes: any = await getPatients();
+        const appts = apptsRes?.appointments || apptsRes || [];
+        const pats = patsRes?.patients || patsRes || [];
+
+        const now = new Date();
+        const windowMs = 60 * 60 * 1000; // next 60 minutes
+        const upper = new Date(now.getTime() + windowMs);
+
+        const upcoming = appts
+          .filter((a: any) => a.scheduledAt)
+          .map((a: any) => ({ ...a, scheduledAtDate: new Date(a.scheduledAt) }))
+          .filter((a: any) => a.scheduledAtDate >= now && a.scheduledAtDate <= upper)
+          .sort((x: any, y: any) => x.scheduledAtDate.getTime() - y.scheduledAtDate.getTime())
+          .slice(0, 6)
+          .map((a: any) => ({
+            id: a.id,
+            time: a.scheduledAtDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            patient: pats.find((p: any) => p.id === a.patientId)?.name || `#${a.patientId}`,
+            procedure: a.procedure || '',
+          }));
+
+        if (mounted) setItems(upcoming);
+      } catch (err) {
+        console.error('Failed loading upcoming notifications', err);
+      }
+    }
+
+    load();
+    timer = setInterval(load, 30 * 1000);
+    return () => { mounted = false; clearInterval(timer); };
+  }, []);
+
+  if (!items.length) {
+    return (
+      <div className="px-3 py-3">
+        <p className="text-sm text-gray-600">No upcoming appointments in the next hour.</p>
+        <div className="mt-3">
+          <button className="w-full text-left text-sm text-blue-600" onClick={() => navigate('/appointments')}>View calendar</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-1">
+      {items.map((it) => (
+        <DropdownMenuItem key={it.id} onClick={() => navigate('/appointments')}>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <p className="text-sm font-medium">{it.patient}</p>
+              <p className="text-xs text-gray-500">{it.procedure}</p>
+            </div>
+            <div className="text-xs text-gray-600 ml-4">{it.time}</div>
+          </div>
+        </DropdownMenuItem>
+      ))}
+      <DropdownMenuSeparator />
+      <div className="px-2 py-1">
+        <button className="w-full text-sm text-gray-600" onClick={() => navigate('/appointments')}>Open full schedule</button>
       </div>
     </div>
   );
