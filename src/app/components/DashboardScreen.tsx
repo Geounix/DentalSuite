@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Calendar, DollarSign, CreditCard, TrendingUp, UserPlus, CalendarPlus, Wallet, Clock } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAppointments, getPayments, getPatients } from '../lib/api';
 
 interface DashboardScreenProps {
@@ -11,6 +12,7 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
+  const navigate = useNavigate();
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [kpis, setKpis] = useState({ todaysAppointments: 0, monthlyRevenue: 0, outstandingPayments: 0, insuranceSavings: 0 });
@@ -114,32 +116,35 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Button 
+            <Button
               className="h-auto py-4 flex flex-col items-center gap-2 bg-blue-600 hover:bg-blue-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('patients');
-                // always dispatch event to open create modal even if onNavigate not provided
-                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-patient')), 200);
+                else navigate('/patients');
+                // dispatch event to open create modal once the Patients screen mounts
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-patient')), 400);
               }}
             >
               <UserPlus className="w-6 h-6" />
               <span>New Patient</span>
             </Button>
-            <Button 
+            <Button
               className="h-auto py-4 flex flex-col items-center gap-2 bg-teal-600 hover:bg-teal-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('appointments');
-                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-appointment')), 200);
+                else navigate('/appointments');
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-appointment')), 400);
               }}
             >
               <CalendarPlus className="w-6 h-6" />
               <span>New Appointment</span>
             </Button>
-            <Button 
+            <Button
               className="h-auto py-4 flex flex-col items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('payments');
-                setTimeout(() => window.dispatchEvent(new CustomEvent('open:record-payment')), 200);
+                else navigate('/payments');
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open:record-payment')), 400);
               }}
             >
               <Wallet className="w-6 h-6" />
