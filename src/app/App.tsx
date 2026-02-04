@@ -1,4 +1,3 @@
-import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
@@ -66,7 +65,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
   const location = useLocation();
   const navigate = useNavigate();
   const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
+    ? user.name.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()
     : 'U';
 
   return (
@@ -196,9 +195,24 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
             </DropdownMenu>
 
             {/* Settings */}
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Settings className="w-5 h-5 text-gray-600" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Settings className="w-5 h-5 text-gray-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2 border-b">
+                  <p className="text-sm font-medium">Language</p>
+                </div>
+                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'es-419'); window.location.reload(); }}>
+                  Español (Latinoamérica)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'en'); window.location.reload(); }}>
+                  English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Menu */}
             <DropdownMenu>
@@ -238,7 +252,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
           <div className="max-w-[1600px] mx-auto">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardScreen />} />
+              <Route path="/dashboard" element={<DashboardScreen onNavigate={(screen: string) => navigate(`/${screen}`)} />} />
               <Route path="/users" element={<UserManagementScreen />} />
               <Route path="/patients" element={<PatientsScreen />} />
               <Route path="/appointments" element={<AppointmentsScreen />} />
