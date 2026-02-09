@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,6 +23,7 @@ interface Appointment {
 }
 
 export function AppointmentsScreen() {
+  const { t } = useTranslation();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'day' | 'week'>('day');
@@ -188,8 +190,14 @@ export function AppointmentsScreen() {
       const patientId = patients.find(p => p.name === formData.patient)?.id;
       const doctorId = doctors.find(d => d.name === formData.doctor)?.id;
 
-      if (!patientId || !doctorId) {
-        return alert("Select a valid patient and doctor");
+      // Validate patient and doctor selection explicitly
+      if (typeof patientId !== 'number') {
+        alert(t('appointmentForm.errors.selectPatient'));
+        return;
+      }
+      if (typeof doctorId !== 'number') {
+        alert(t('appointmentForm.errors.selectDoctor'));
+        return;
       }
 
       const scheduledAt = new Date(`${formData.date}T${formData.time}:00`);
@@ -212,7 +220,7 @@ export function AppointmentsScreen() {
       });
 
       if (isDuplicate) {
-        alert(`Doctor ${formData.doctor} already has an appointment scheduled at ${formData.time} on this date. Please choose a different time.`);
+        alert(t('appointmentForm.errors.duplicateSlot', { doctor: formData.doctor, time: formData.time }));
         return;
       }
 
@@ -258,25 +266,27 @@ export function AppointmentsScreen() {
         notes: ''
       });
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating appointment', err);
-      alert('Failed to create appointment');
+      // Try to show server-side error if provided
+      const serverMsg = err?.response?.data?.error || err?.response?.data || err.message;
+      alert(t('appointmentForm.errors.createFailed', { message: typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg) }));
     }
   };
 
-  if (!currentUser) return <div>Loading user...</div>;
+  if (!currentUser) return <div>{t('loading.user')}</div>;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
-          <p className="text-gray-600 mt-1">Manage patient appointments and scheduling</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('appointments.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('appointments.subtitle')}</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
           <CalendarPlus className="w-4 h-4 mr-2" />
-          New Appointment
+          {t('appointments.newAppointment')}
         </Button>
       </div>
       {/* JSX (tu vista) */}
@@ -305,14 +315,14 @@ export function AppointmentsScreen() {
               onClick={handleToday}
               disabled={isToday}
             >
-              Today
+              {t('appointments.today')}
             </Button>
           </div>
 
           <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week')}>
             <TabsList>
-              <TabsTrigger value="day">Day</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="day">{t('appointments.view.day')}</TabsTrigger>
+              <TabsTrigger value="week">{t('appointments.view.week')}</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardContent>
@@ -333,8 +343,8 @@ export function AppointmentsScreen() {
               return (
                 <Card key={doc.id}>
                   <CardHeader>
-                    <CardTitle>{doc.name}'s Schedule</CardTitle>
-                    <CardDescription>{apptsForDoctor.length} appointments</CardDescription>
+                    <CardTitle>{t('appointments.doctorSchedule', { name: doc.name })}</CardTitle>
+                    <CardDescription>{apptsForDoctor.length} {t('appointments.countLabel')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
@@ -364,18 +374,18 @@ export function AppointmentsScreen() {
                                   <div className="flex flex-col items-end gap-2">
                                     <StatusBadge status={appt.status} />
                                     <div className="flex gap-2">
-                                      {appt.status.toLowerCase() !== 'completed' && (
-                                        <Button size="sm" onClick={() => handleUpdateStatus(appt.id, 'completed')}>Complete</Button>
-                                      )}
-                                      {appt.status.toLowerCase() !== 'cancelled' && (
-                                        <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(appt.id, 'cancelled')}>Cancel</Button>
+                                      {appt.status.toLowerCase() === 'scheduled' && (
+                                        <>
+                                          <Button size="sm" onClick={() => handleUpdateStatus(appt.id, 'completed')}>{t('appointments.complete')}</Button>
+                                          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(appt.id, 'cancelled')}>{t('appointments.cancel')}</Button>
+                                        </>
                                       )}
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex-1 p-3 rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">Available</div>
+                              <div className="flex-1 p-3 rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">{t('appointments.available')}</div>
                             )}
                           </div>
                         );
@@ -418,7 +428,7 @@ export function AppointmentsScreen() {
                           <div key={day.toISOString()} className="p-2 border rounded">
                             <div className="text-xs text-gray-500 font-medium mb-2">{day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
                             <div className="space-y-2">
-                              {apptsForDay.length === 0 && <div className="text-xs text-gray-400">No appts</div>}
+                              {apptsForDay.length === 0 && <div className="text-xs text-gray-400">{t('appointmentForm.noAppts')}</div>}
                               {apptsForDay.map(appt => (
                                 <div key={appt.id} className={`p-2 rounded ${getStatusColor(appt.status)} text-sm` }>
                                   <div className="font-medium">{appt.patient}</div>
@@ -439,24 +449,24 @@ export function AppointmentsScreen() {
 
       {/* Create Appointment Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Schedule New Appointment</DialogTitle>
-            <DialogDescription>Create a new appointment for a patient</DialogDescription>
+            <DialogTitle>{t('appointmentForm.scheduleTitle')}</DialogTitle>
+            <DialogDescription>{t('appointmentForm.scheduleDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Patient */}
             <div className="space-y-2">
-              <Label htmlFor="patient">Patient</Label>
+              <Label htmlFor="patient">{t('appointmentForm.patientLabel')}</Label>
               <Select value={formData.patient} onValueChange={(value) => setFormData({ ...formData, patient: value })}>
-                <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('appointmentForm.selectPatient')} /></SelectTrigger>
                 <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
             {/* Doctor */}
             <div className="space-y-2">
-              <Label htmlFor="doctor">Doctor</Label>
+              <Label htmlFor="doctor">{t('appointmentForm.doctorLabel')}</Label>
               <Select value={formData.doctor} onValueChange={(value) => setFormData({ ...formData, doctor: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{doctors.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
@@ -465,17 +475,17 @@ export function AppointmentsScreen() {
 
             {/* Procedure */}
             <div className="space-y-2">
-              <Label htmlFor="procedure">Procedure</Label>
+              <Label htmlFor="procedure">{t('appointmentForm.procedureLabel')}</Label>
               <Select value={formData.procedure} onValueChange={(value) => setFormData({ ...formData, procedure: value })}>
-                <SelectTrigger><SelectValue placeholder="Select procedure" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('appointmentForm.selectProcedure')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Teeth Cleaning">Teeth Cleaning</SelectItem>
-                  <SelectItem value="Root Canal">Root Canal</SelectItem>
-                  <SelectItem value="Crown Placement">Crown Placement</SelectItem>
-                  <SelectItem value="Filling">Filling</SelectItem>
-                  <SelectItem value="Extraction">Extraction</SelectItem>
-                  <SelectItem value="Consultation">Consultation</SelectItem>
-                  <SelectItem value="Checkup">Checkup</SelectItem>
+                  <SelectItem value="Teeth Cleaning">{t('appointmentForm.procedures.teethCleaning')}</SelectItem>
+                  <SelectItem value="Root Canal">{t('appointmentForm.procedures.rootCanal')}</SelectItem>
+                  <SelectItem value="Crown Placement">{t('appointmentForm.procedures.crownPlacement')}</SelectItem>
+                  <SelectItem value="Filling">{t('appointmentForm.procedures.filling')}</SelectItem>
+                  <SelectItem value="Extraction">{t('appointmentForm.procedures.extraction')}</SelectItem>
+                  <SelectItem value="Consultation">{t('appointmentForm.procedures.consultation')}</SelectItem>
+                  <SelectItem value="Checkup">{t('appointmentForm.procedures.checkup')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -494,17 +504,17 @@ export function AppointmentsScreen() {
                     const today = new Date().toISOString().split('T')[0];
 
                     // Validación extra por si acaso
-                    if (selectedDate < today) {
-                      alert("Cannot schedule appointments in the past");
-                      return;
-                    }
+                        if (selectedDate < today) {
+                          alert(t('appointmentForm.pastDateError'));
+                          return;
+                        }
 
                     setFormData({ ...formData, date: selectedDate });
                   }}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
+                <Label htmlFor="time">{t('appointmentForm.timeLabel')}</Label>
                 <Input
                   id="time"
                   type="time"
@@ -516,22 +526,22 @@ export function AppointmentsScreen() {
 
             {/* Duration */}
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Label htmlFor="duration">{t('appointmentForm.durationLabel')}</Label>
               <Select value={formData.duration.toString()} onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="45">45 minutes</SelectItem>
-                  <SelectItem value="60">60 minutes</SelectItem>
-                  <SelectItem value="90">90 minutes</SelectItem>
-                  <SelectItem value="120">120 minutes</SelectItem>
+                  <SelectItem value="30">{t('appointmentForm.durationOptions.30')}</SelectItem>
+                  <SelectItem value="45">{t('appointmentForm.durationOptions.45')}</SelectItem>
+                  <SelectItem value="60">{t('appointmentForm.durationOptions.60')}</SelectItem>
+                  <SelectItem value="90">{t('appointmentForm.durationOptions.90')}</SelectItem>
+                  <SelectItem value="120">{t('appointmentForm.durationOptions.120')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateAppointment} className="bg-blue-600 hover:bg-blue-700">Schedule Appointment</Button>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleCreateAppointment} className="bg-blue-600 hover:bg-blue-700">{t('appointmentForm.scheduleButton')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -31,6 +32,7 @@ interface Procedure {
 }
 
 export function InsuranceScreen() {
+  const { t } = useTranslation();
   const [view, setView] = useState<'companies' | 'company-detail' | 'plan-detail'>('companies');
   const [selectedCompany, setSelectedCompany] = useState<InsuranceCompany | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
@@ -212,49 +214,49 @@ export function InsuranceScreen() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Insurance Management</h1>
-            <p className="text-gray-600 mt-1">Manage insurance companies, plans, and coverage</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('insurance.title')}</h1>
+            <p className="text-gray-600 mt-1">{t('insurance.subtitle')}</p>
           </div>
           <Button onClick={() => setIsCreateCompanyModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
-            Add Insurance Company
+            {t('insurance.addCompany')}
           </Button>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Companies</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">{t('insurance.kpi.totalCompanies')}</CardTitle>
               <Shield className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{companies.length}</div>
-              <p className="text-xs text-gray-500 mt-1">Insurance providers</p>
+              <p className="text-xs text-gray-500 mt-1">{t('insurance.kpi.providers')}</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Plans</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">{t('insurance.kpi.totalPlans')}</CardTitle>
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-600">{totalPlans}</div>
-              <p className="text-xs text-gray-500 mt-1">Active insurance plans</p>
+              <p className="text-xs text-gray-500 mt-1">{t('insurance.kpi.activePlans')}</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Avg Plans per Company</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">{t('insurance.kpi.avgPlansPerCompany')}</CardTitle>
               <TrendingDown className="h-5 w-5 text-purple-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
                 {companies.length > 0 ? (totalPlans / companies.length).toFixed(1) : 0}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Plan diversity</p>
+              <p className="text-xs text-gray-500 mt-1">{t('insurance.kpi.diversity')}</p>
             </CardContent>
           </Card>
         </div>
@@ -265,7 +267,7 @@ export function InsuranceScreen() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Search insurance companies..."
+                placeholder={t('insurance.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -276,18 +278,18 @@ export function InsuranceScreen() {
 
         {/* Insurance Companies Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Insurance Companies ({filteredCompanies.length})</CardTitle>
-            <CardDescription>Click on a company to view and manage their plans</CardDescription>
+            <CardHeader>
+            <CardTitle>{t('insurance.table.title', { count: filteredCompanies.length })}</CardTitle>
+            <CardDescription>{t('insurance.table.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Number of Plans</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
+                    <TableHead>{t('insurance.table.headers.companyName')}</TableHead>
+                    <TableHead>{t('insurance.table.headers.numberOfPlans')}</TableHead>
+                    <TableHead className="w-[100px]">{t('insurance.table.headers.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -299,7 +301,7 @@ export function InsuranceScreen() {
                           {company.name}
                         </div>
                       </TableCell>
-                        <TableCell className="text-gray-600">{(company.plans && Array.isArray(company.plans) ? company.plans.length : 0)} plans</TableCell>
+                        <TableCell className="text-gray-600">{t('insurance.table.planCount', { count: (company.plans && Array.isArray(company.plans) ? company.plans.length : 0) })}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -372,33 +374,33 @@ export function InsuranceScreen() {
               }}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Companies
+              {t('companyDetail.backToCompanies')}
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{selectedCompany.name}</h1>
-              <p className="text-gray-600 mt-1">{plans.length} insurance plans</p>
+              <p className="text-gray-600 mt-1">{t('companyDetail.plansCount', { count: plans.length })}</p>
             </div>
           </div>
           <Button onClick={() => setIsCreatePlanModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
-            Add Plan
+            {t('companyDetail.addPlan')}
           </Button>
         </div>
 
         {/* Plans Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Insurance Plans</CardTitle>
-            <CardDescription>Click on a plan to manage procedures and coverage details</CardDescription>
+            <CardHeader>
+            <CardTitle>{t('companyDetail.plans.title')}</CardTitle>
+            <CardDescription>{t('companyDetail.plans.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {plans.length === 0 ? (
               <div className="text-center py-12">
                 <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No plans created yet</p>
+                <p className="text-gray-500 mb-4">{t('companyDetail.plans.noPlans')}</p>
                 <Button onClick={() => setIsCreatePlanModalOpen(true)} variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Plan
+                  {t('companyDetail.plans.addFirstPlan')}
                 </Button>
               </div>
             ) : (
@@ -406,10 +408,10 @@ export function InsuranceScreen() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Plan Name</TableHead>
-                      <TableHead>Plan Type</TableHead>
-                      <TableHead>Procedures Covered</TableHead>
-                      <TableHead className="w-[150px]">Actions</TableHead>
+                      <TableHead>{t('companyDetail.plans.table.planName')}</TableHead>
+                      <TableHead>{t('companyDetail.plans.table.planType')}</TableHead>
+                      <TableHead>{t('companyDetail.plans.table.proceduresCovered')}</TableHead>
+                      <TableHead className="w-[150px]">{t('companyDetail.plans.table.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -568,7 +570,7 @@ export function InsuranceScreen() {
               }}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Plans
+              {t('insurance.view.backToPlans')}
             </Button>
             <div>
               <div className="flex items-center gap-3">
@@ -580,7 +582,7 @@ export function InsuranceScreen() {
           </div>
           <Button onClick={() => setIsAddProcedureModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
-            Add Procedure
+            {t('insurance.view.addProcedure')}
           </Button>
         </div>
 
@@ -590,7 +592,7 @@ export function InsuranceScreen() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Procedures</p>
+                  <p className="text-sm text-gray-600">{t('insurance.view.planSummary.totalProcedures')}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{procedures.length}</p>
                 </div>
                 <CheckCircle2 className="w-10 h-10 text-blue-500 opacity-50" />
@@ -602,7 +604,7 @@ export function InsuranceScreen() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Avg Coverage Amount</p>
+                  <p className="text-sm text-gray-600">{t('insurance.view.planSummary.avgCoverageAmount')}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
                     ${procedures.length > 0
                       ? Math.round(procedures.reduce((sum, p) => sum + p.coverageAmount, 0) / procedures.length)
@@ -618,7 +620,7 @@ export function InsuranceScreen() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Avg Patient Copay</p>
+                  <p className="text-sm text-gray-600">{t('insurance.view.planSummary.avgPatientCopay')}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
                     {procedures.length > 0
                       ? Math.round(procedures.reduce((sum, p) => sum + p.copayPercent, 0) / procedures.length)
@@ -634,17 +636,17 @@ export function InsuranceScreen() {
         {/* Procedures Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Covered Procedures</CardTitle>
-            <CardDescription>Manage procedure coverage amounts and patient copay percentages</CardDescription>
+            <CardTitle>{t('insurance.view.coveredProcedures.title')}</CardTitle>
+            <CardDescription>{t('insurance.view.coveredProcedures.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {procedures.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No procedures added yet</p>
+                <p className="text-gray-500 mb-4">{t('insurance.view.noProcedures')}</p>
                 <Button onClick={() => setIsAddProcedureModalOpen(true)} variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Procedure
+                  {t('insurance.view.addFirstProcedure')}
                 </Button>
               </div>
             ) : (
@@ -652,10 +654,10 @@ export function InsuranceScreen() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Procedure Name</TableHead>
-                      <TableHead>Coverage Amount</TableHead>
-                      <TableHead>Patient Copay %</TableHead>
-                      <TableHead className="w-[150px]">Actions</TableHead>
+                      <TableHead>{t('insurance.view.table.procedureName')}</TableHead>
+                      <TableHead>{t('insurance.view.table.coverageAmount')}</TableHead>
+                      <TableHead>{t('insurance.view.table.patientCopay')}</TableHead>
+                      <TableHead className="w-[150px]">{t('insurance.view.table.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -675,7 +677,7 @@ export function InsuranceScreen() {
                               }}
                             >
                               <Edit className="w-4 h-4 mr-2" />
-                              Edit
+                                {t('insurance.view.actions.edit')}
                             </Button>
                             <Button
                               variant="ghost"
@@ -684,7 +686,7 @@ export function InsuranceScreen() {
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
+                              {t('insurance.view.actions.delete')}
                             </Button>
                           </div>
                         </TableCell>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getPatients, createPatient, updatePatient, getAppointments, getUsers, getProcedures, getPayments, getDocuments, deleteDocument, uploadDocument } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -17,12 +18,14 @@ interface Patient {
   email: string;
   phone: string;
   dateOfBirth: string;
+  address: string;
   lastVisit: string;
   nextAppointment?: string;
   balance: number;
 }
 
 export function PatientsScreen() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -34,6 +37,7 @@ export function PatientsScreen() {
     name: '',
     email: '',
     phone: '',
+    nationalId: '',
     dateOfBirth: '',
     address: '',
     insurance: ''
@@ -60,6 +64,9 @@ export function PatientsScreen() {
             email: p.email ?? '',
             phone: p.phone ?? '',
             dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
+            address: p.address ?? '',
+            // include nationalId so other components can access it
+            nationalId: p.nationalId ?? '',
             lastVisit: past.length ? past[0].scheduledAt.toISOString().split('T')[0] : '-',
             nextAppointment: upcoming.length ? upcoming[0].scheduledAt.toISOString().split('T')[0] : undefined,
             balance: p.balance ?? 0
@@ -83,13 +90,16 @@ export function PatientsScreen() {
         email: data.patient.email ?? '',
         phone: data.patient.phone ?? '',
         dateOfBirth: data.patient.dateOfBirth ? new Date(data.patient.dateOfBirth).toISOString().split('T')[0] : '',
+        address: data.patient.address ?? '',
+        // include nationalId locally so other screens can use it
+        ...(data.patient.nationalId ? { nationalId: data.patient.nationalId } : {}),
         lastVisit: '-',
         nextAppointment: undefined,
         balance: data.patient.balance ?? 0
       };
       setPatients([newPatient, ...patients]);
       setIsCreateModalOpen(false);
-      setFormData({ name: '', email: '', phone: '', dateOfBirth: '', address: '', insurance: '' });
+      setFormData({ name: '', email: '', phone: '', nationalId: '', dateOfBirth: '', address: '', insurance: '' });
     } catch (err) {
       console.error('Error creating patient', err);
       alert('Error creating patient');
@@ -121,7 +131,7 @@ export function PatientsScreen() {
       setPatients(patients.map(p => p.id === editingPatient.id ? updatedPatient : p));
       setIsEditModalOpen(false);
       setEditingPatient(null);
-      setFormData({ name: '', email: '', phone: '', dateOfBirth: '', address: '', insurance: '' });
+      setFormData({ name: '', email: '', phone: '', nationalId: '', dateOfBirth: '', address: '', insurance: '' });
     } catch (err) {
       console.error('Error updating patient', err);
       alert('Error updating patient');
@@ -142,13 +152,13 @@ export function PatientsScreen() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Patients</h1>
-              <p className="text-gray-600 mt-1">Manage patient records and information</p>
-            </div>
-            <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Patient
-            </Button>
+                <h1 className="text-3xl font-bold text-gray-900">{t('patients.title')}</h1>
+                <p className="text-gray-600 mt-1">{t('patients.subtitle')}</p>
+              </div>
+              <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <UserPlus className="w-4 h-4 mr-2" />
+                {t('patients.addPatient')}
+              </Button>
           </div>
 
           {/* Search */}
@@ -157,7 +167,7 @@ export function PatientsScreen() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search patients by name, email, or phone..."
+                  placeholder={t('patients.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -169,21 +179,21 @@ export function PatientsScreen() {
           {/* Patients Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Patient List ({filteredPatients.length})</CardTitle>
-              <CardDescription>View and manage patient records</CardDescription>
+              <CardTitle>{t('patients.listTitle', { count: filteredPatients.length })}</CardTitle>
+              <CardDescription>{t('patients.listDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Date of Birth</TableHead>
-                      <TableHead>Last Visit</TableHead>
-                      <TableHead>Next Appointment</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+                      <TableHead>{t('patients.table.name')}</TableHead>
+                      <TableHead>{t('patients.table.contact')}</TableHead>
+                      <TableHead>{t('patients.table.dateOfBirth')}</TableHead>
+                      <TableHead>{t('patients.table.lastVisit')}</TableHead>
+                      <TableHead>{t('patients.table.nextAppointment')}</TableHead>
+                      <TableHead>{t('patients.table.balance')}</TableHead>
+                      <TableHead className="w-[100px]">{t('patients.table.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -220,7 +230,7 @@ export function PatientsScreen() {
                             onClick={() => setSelectedPatient(patient)}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            View
+                            {t('patients.view')}
                           </Button>
                           <Button
                             variant="ghost"
@@ -231,15 +241,16 @@ export function PatientsScreen() {
                                 name: patient.name,
                                 email: patient.email,
                                 phone: patient.phone,
+                                nationalId: (patient as any).nationalId || '',
                                 dateOfBirth: patient.dateOfBirth,
-                                address: '',
+                                address: patient.address || '',
                                 insurance: ''
                               });
                               setIsEditModalOpen(true);
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Edit
+                            {t('patients.edit')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -254,23 +265,37 @@ export function PatientsScreen() {
           <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
-                <DialogTitle>Add New Patient</DialogTitle>
+                <DialogTitle>{t('patients.createModal.title')}</DialogTitle>
                 <DialogDescription>
-                  Create a new patient record
+                  {t('patients.createModal.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">{t('patients.createModal.labels.fullName')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="John Doe"
+                    placeholder={t('patients.createModal.placeholders.fullName')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Label htmlFor="nationalId">Cédula de identidad</Label>
+                  <Input
+                    id="nationalId"
+                    value={formData.nationalId}
+                    maxLength={11}
+                    onChange={(e) => {
+                      // allow only digits and limit to 11
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      setFormData({ ...formData, nationalId: digits });
+                    }}
+                    placeholder="12345678901"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dob">{t('patients.createModal.labels.dob')}</Label>
                   <Input
                     id="dob"
                     type="date"
@@ -279,49 +304,49 @@ export function PatientsScreen() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('patients.createModal.labels.email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="john.doe@email.com"
+                    placeholder={t('patients.createModal.placeholders.email')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('patients.createModal.labels.phone')}</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
+                    placeholder={t('patients.createModal.placeholders.phone')}
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t('patients.createModal.labels.address')}</Label>
                   <Input
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="123 Main St, City, State 12345"
+                    placeholder={t('patients.createModal.placeholders.address')}
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="insurance">Insurance Provider</Label>
+                  <Label htmlFor="insurance">{t('patients.createModal.labels.insurance')}</Label>
                   <Input
                     id="insurance"
                     value={formData.insurance}
                     onChange={(e) => setFormData({ ...formData, insurance: e.target.value })}
-                    placeholder="BlueCross BlueShield"
+                    placeholder={t('patients.createModal.placeholders.insurance')}
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleCreatePatient} className="bg-blue-600 hover:bg-blue-700">
-                  Create Patient
+                  {t('patients.createModal.createButton')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -331,9 +356,9 @@ export function PatientsScreen() {
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
-                <DialogTitle>Edit Patient</DialogTitle>
+                <DialogTitle>{t('patients.editModal.title')}</DialogTitle>
                 <DialogDescription>
-                  Update patient record
+                  {t('patients.editModal.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 py-4">
@@ -372,6 +397,19 @@ export function PatientsScreen() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(555) 123-4567"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nationalIdEdit">Cédula de identidad</Label>
+                  <Input
+                    id="nationalIdEdit"
+                    value={(formData as any).nationalId || ''}
+                    maxLength={11}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      setFormData({ ...formData, nationalId: digits });
+                    }}
+                    placeholder="12345678901"
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
@@ -395,10 +433,10 @@ export function PatientsScreen() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleEditPatient} className="bg-blue-600 hover:bg-blue-700">
-                  Update Patient
+                  {t('patients.editModal.updateButton')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -413,6 +451,7 @@ export function PatientsScreen() {
 
 // Patient Profile with Tabs
 function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: () => void }) {
+  const { t } = useTranslation();
   const [patientPayments, setPatientPayments] = useState<any[]>([]);
   const [loadingPatientPayments, setLoadingPatientPayments] = useState(true);
 
@@ -540,14 +579,14 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack}>← Back</Button>
+        <Button variant="outline" onClick={onBack}>← {t('patients.profile.back')}</Button>
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
-          <p className="text-gray-600 mt-1">Patient ID: #{patient.id}</p>
+          <p className="text-gray-600 mt-1">{t('patients.profile.patientId', { id: patient.id })}</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700">
           <Calendar className="w-4 h-4 mr-2" />
-          New Appointment
+          {t('patients.profile.newAppointment')}
         </Button>
       </div>
 
@@ -556,19 +595,19 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-sm text-gray-600">Email</p>
+              <p className="text-sm text-gray-600">{t('patients.profile.email')}</p>
               <p className="font-medium text-gray-900">{patient.email}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Phone</p>
+              <p className="text-sm text-gray-600">{t('patients.profile.phone')}</p>
               <p className="font-medium text-gray-900">{patient.phone}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Date of Birth</p>
+              <p className="text-sm text-gray-600">{t('patients.profile.dateOfBirth')}</p>
               <p className="font-medium text-gray-900">{patient.dateOfBirth}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Outstanding Balance</p>
+              <p className="text-sm text-gray-600">{t('patients.profile.outstandingBalance')}</p>
               <p className={`font-medium ${patient.balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                 ${patient.balance}
               </p>
@@ -579,26 +618,26 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">
             <Activity className="w-4 h-4 mr-2" />
-            Overview
+            {t('patients.profile.tabs.overview')}
           </TabsTrigger>
           <TabsTrigger value="history">
             <FileText className="w-4 h-4 mr-2" />
-            Medical History
+            {t('patients.profile.tabs.history')}
           </TabsTrigger>
           <TabsTrigger value="odontogram">
             <Activity className="w-4 h-4 mr-2" />
-            Odontogram
+            {t('patients.profile.tabs.odontogram')}
           </TabsTrigger>
           <TabsTrigger value="payments">
             <DollarSign className="w-4 h-4 mr-2" />
-            Payments
+            {t('patients.profile.tabs.payments')}
           </TabsTrigger>
           <TabsTrigger value="documents">
             <FileCheck className="w-4 h-4 mr-2" />
-            Documents
+            {t('patients.profile.tabs.documents')}
           </TabsTrigger>
         </TabsList>
 
@@ -606,8 +645,8 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                  <CardTitle>Recent Appointments</CardTitle>
-                </CardHeader>
+                    <CardTitle>{t('patients.profile.recentAppointments.title')}</CardTitle>
+                  </CardHeader>
                 <CardContent>
                   <RecentAppointments patientId={patient.id} />
                 </CardContent>
@@ -615,8 +654,8 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
 
             <Card>
               <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-              </CardHeader>
+                  <CardTitle>{t('patients.profile.upcomingAppointments.title')}</CardTitle>
+                </CardHeader>
               <CardContent>
                 <UpcomingAppointments patientId={patient.id} />
               </CardContent>
@@ -627,7 +666,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
         <TabsContent value="history">
             <Card>
               <CardHeader>
-                <CardTitle>Medical History Timeline</CardTitle>
+                <CardTitle>{t('patients.profile.medicalHistory.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <PatientMedicalHistory patientId={patient.id} />
@@ -641,28 +680,28 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
 
         <TabsContent value="payments">
           <Card>
-            <CardHeader>
-              <CardTitle>Payment History</CardTitle>
-            </CardHeader>
+              <CardHeader>
+              <CardTitle>{t('patients.profile.payments.title')}</CardTitle>
+              </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Insurance</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('payments.table.date')}</TableHead>
+                    <TableHead>{t('payments.table.description')}</TableHead>
+                    <TableHead>{t('payments.table.amount')}</TableHead>
+                    <TableHead>{t('payments.table.insurance')}</TableHead>
+                    <TableHead>{t('payments.table.status')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingPatientPayments ? (
                     <TableRow>
-                      <TableCell colSpan={5}>Loading payments...</TableCell>
+                      <TableCell colSpan={5}>{t('payments.transactions.loading')}</TableCell>
                     </TableRow>
                   ) : patientPayments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-sm text-gray-400">No payments found for this patient</TableCell>
+                      <TableCell colSpan={5} className="text-sm text-gray-400">{t('patients.profile.payments.none')}</TableCell>
                     </TableRow>
                   ) : (
                     patientPayments.map((p) => (

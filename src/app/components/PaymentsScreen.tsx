@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -26,6 +27,7 @@ interface Payment {
 }
 
 export function PaymentsScreen() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentTransactions, setPaymentTransactions] = useState<any[]>([]);
@@ -44,6 +46,7 @@ export function PaymentsScreen() {
     method: 'credit-card',
     transactionId: '',
     paymentType: 'full',
+    paymentAmount: '',
     notes: ''
   });
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -73,7 +76,7 @@ export function PaymentsScreen() {
           insuranceCoverage: p.insuranceCoverage,
           finalAmount: p.finalAmount,
           amountPaid: p.amountPaid,
-          status: p.status ?? (p.amountPaid >= p.finalAmount ? 'Paid' : (p.amountPaid > 0 ? 'Partial' : 'Pending')),
+          status: String(p.status ?? (p.amountPaid >= p.finalAmount ? 'paid' : (p.amountPaid > 0 ? 'pending' : 'unpaid'))).toLowerCase(),
           paymentMethod: p.paymentMethod,
           transactionId: p.transactionId
         }));
@@ -129,17 +132,27 @@ export function PaymentsScreen() {
       const insuranceCoverage = Number(paymentForm.insuranceCoverage) || 0;
       const finalAmount = originalAmount - insuranceCoverage;
 
+      // Validation: partial payments must include an explicit payment amount > 0
+      if (paymentForm.paymentType === 'partial') {
+        const pa = Number(paymentForm.paymentAmount) || 0;
+        if (!pa || pa <= 0) {
+          setPaymentError('Enter a payment amount for partial payments');
+          return;
+        }
+      }
+
       let amountPaid = 0;
-      let status = 'Pending';
+      let status = 'unpaid';
       if (paymentForm.paymentType === 'full') {
         amountPaid = finalAmount;
-        status = 'Paid';
+        status = 'paid';
       } else if (paymentForm.paymentType === 'partial') {
-        amountPaid = Number(paymentForm.amount) || 0;
-        status = amountPaid >= finalAmount ? 'Paid' : 'Partial';
+        // Use explicit payment amount for partial payments (amount being paid now)
+        amountPaid = Number(paymentForm.paymentAmount) || 0;
+        status = amountPaid >= finalAmount ? 'paid' : 'pending';
       } else if (paymentForm.paymentType === 'owes') {
         amountPaid = 0;
-        status = 'Pending';
+        status = 'unpaid';
       }
 
       const payload: any = {
@@ -147,29 +160,33 @@ export function PaymentsScreen() {
         originalAmount,
         insuranceCoverage,
         amountPaid,
+        paymentType: paymentForm.paymentType,
         paymentMethod: paymentForm.method,
         transactionId: paymentForm.transactionId || undefined,
         notes: paymentForm.notes,
         status
       };
 
+      // Debug: log payload sent to server
+      console.log('createPayment payload', payload);
+
       const res = await createPayment(payload);
       const created = res.payment || res;
       const newPayment: Payment = {
         id: created.id,
-        patient: patientsList.find((p: any) => p.id === created.patientId)?.name || `#${created.patientId}`,
+        patient: created.patientName || patientsList.find((p: any) => String(p.id) === String(created.patientId))?.name || `#${created.patientId}`,
         procedure: created.procedure || '',
         date: created.createdAt ? new Date(created.createdAt).toISOString().split('T')[0] : '',
         originalAmount: created.originalAmount,
         insuranceCoverage: created.insuranceCoverage,
         finalAmount: created.finalAmount,
         amountPaid: created.amountPaid,
-        status: created.status ?? (created.amountPaid >= created.finalAmount ? 'Paid' : (created.amountPaid > 0 ? 'Partial' : 'Pending')),
+        status: String(created.status ?? (created.amountPaid >= created.finalAmount ? 'paid' : (created.amountPaid > 0 ? 'pending' : 'unpaid'))).toLowerCase(),
         paymentMethod: created.paymentMethod,
         transactionId: created.transactionId
       };
       setPayments(prev => [newPayment, ...prev]);
-      setPaymentForm({ patientId: '', amount: '', insuranceCoverage: '', method: 'credit-card', transactionId: '', paymentType: 'full', notes: '' });
+      setPaymentForm({ patientId: '', amount: '', insuranceCoverage: '', method: 'credit-card', transactionId: '', paymentType: 'full', paymentAmount: '', notes: '' });
       setIsRecordPaymentOpen(false);
       setPaymentError(null);
     } catch (err) {
@@ -183,12 +200,12 @@ export function PaymentsScreen() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Payments & Billing</h1>
-          <p className="text-gray-600 mt-1">Manage payments, invoices, and billing</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('payments.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('payments.subtitle')}</p>
         </div>
         <Button onClick={() => setIsRecordPaymentOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
           <Wallet className="w-4 h-4 mr-2" />
-          Record Payment
+          {t('payments.recordPayment')}
         </Button>
       </div>
 
@@ -196,34 +213,34 @@ export function PaymentsScreen() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Outstanding</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('payments.kpi.totalOutstanding')}</CardTitle>
             <DollarSign className="h-5 w-5 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">${totalOutstanding.toLocaleString()}</div>
-            <p className="text-xs text-gray-500 mt-1">From {payments.filter(p => p.status !== 'Paid').length} invoices</p>
+            <p className="text-xs text-gray-500 mt-1">{t('payments.kpi.fromInvoices', { count: payments.filter(p => String(p.status).toLowerCase() !== 'paid').length })}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Insurance Savings</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('payments.kpi.insuranceSavings')}</CardTitle>
             <TrendingDown className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">${totalInsuranceSavings.toLocaleString()}</div>
-            <p className="text-xs text-gray-500 mt-1">This month</p>
+            <p className="text-xs text-gray-500 mt-1">{t('payments.kpi.thisMonth')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Overdue Payments</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('payments.kpi.overduePayments')}</CardTitle>
             <Receipt className="h-5 w-5 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{payments.filter(p => p.status === 'Overdue').length}</div>
-            <p className="text-xs text-gray-500 mt-1">Requires follow-up</p>
+            <div className="text-2xl font-bold text-amber-600">{payments.filter(p => String(p.status).toLowerCase() === 'overdue').length}</div>
+            <p className="text-xs text-gray-500 mt-1">{t('payments.kpi.requiresFollowUp')}</p>
           </CardContent>
         </Card>
       </div>
@@ -234,7 +251,7 @@ export function PaymentsScreen() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search payments by patient or procedure..."
+              placeholder={t('payments.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -246,24 +263,24 @@ export function PaymentsScreen() {
       {/* Payments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Payment Records ({filteredPayments.length})</CardTitle>
-          <CardDescription>View and manage payment history</CardDescription>
+          <CardTitle>{t('payments.records.title', { count: filteredPayments.length })}</CardTitle>
+          <CardDescription>{t('payments.records.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Procedure</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Original</TableHead>
-                  <TableHead>Insurance</TableHead>
-                  <TableHead>Final Amount</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead>{t('payments.table.patient')}</TableHead>
+                  <TableHead>{t('payments.table.procedure')}</TableHead>
+                  <TableHead>{t('payments.table.date')}</TableHead>
+                  <TableHead>{t('payments.table.original')}</TableHead>
+                  <TableHead>{t('payments.table.insurance')}</TableHead>
+                  <TableHead>{t('payments.table.finalAmount')}</TableHead>
+                  <TableHead>{t('payments.table.paid')}</TableHead>
+                  <TableHead>{t('payments.table.balance')}</TableHead>
+                  <TableHead>{t('payments.table.status')}</TableHead>
+                  <TableHead className="w-[100px]">{t('payments.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -307,7 +324,7 @@ export function PaymentsScreen() {
         <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Payment Details - Invoice #{selectedPayment.id}</DialogTitle>
+              <DialogTitle>{t('payments.details.title', { id: selectedPayment.id })}</DialogTitle>
               <DialogDescription>
                 {selectedPayment.patient} - {selectedPayment.procedure}
               </DialogDescription>
@@ -317,23 +334,23 @@ export function PaymentsScreen() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex justify-between">
                   <div>
-                    <div className="text-sm text-gray-600">Patient Responsibility</div>
+                    <div className="text-sm text-gray-600">{t('payments.labels.patientResponsibility')}</div>
                     <div className="text-lg font-bold">${selectedPayment.finalAmount}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-600">Paid</div>
+                    <div className="text-sm text-gray-600">{t('payments.labels.paid')}</div>
                     <div className="text-lg font-bold">${selectedPayment.amountPaid}</div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-semibold">Installment History</h4>
-                {loadingTransactions ? (
-                  <div>Loading transactions...</div>
-                ) : paymentTransactions.length === 0 ? (
-                  <div className="text-sm text-gray-400">No transactions recorded</div>
-                ) : (
+                <h4 className="font-semibold">{t('payments.installments.title')}</h4>
+                    {loadingTransactions ? (
+                      <div>{t('payments.transactions.loading')}</div>
+                    ) : paymentTransactions.length === 0 ? (
+                      <div className="text-sm text-gray-400">{t('payments.transactions.none')}</div>
+                    ) : (
                   <div className="space-y-2 mt-2">
                     {paymentTransactions.map((tx: any) => (
                       <div key={tx.id} className="flex items-center justify-between border-b py-2">
@@ -347,7 +364,7 @@ export function PaymentsScreen() {
                   </div>
                 )}
                 <div className="mt-3 flex gap-2">
-                  <Button onClick={() => setIsAddInstallmentOpen(true)}>Add Installment</Button>
+                  <Button onClick={() => setIsAddInstallmentOpen(true)}>{t('payments.actions.addInstallment')}</Button>
                   <Button variant="outline" onClick={async () => {
                     if (!selectedPayment) return;
                     try {
@@ -358,14 +375,14 @@ export function PaymentsScreen() {
                     } catch (err) {
                       console.error('Failed to complete payment', err);
                     }
-                  }}>Complete Payment</Button>
+                  }}>{t('payments.actions.completePayment')}</Button>
                 </div>
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedPayment(null)}>Close</Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-700">Record Payment</Button>
+              <Button variant="outline" onClick={() => setSelectedPayment(null)}>{t('common.close')}</Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700">{t('payments.recordPayment')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -373,32 +390,32 @@ export function PaymentsScreen() {
 
       {/* Record Payment Modal */}
       <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Record New Payment</DialogTitle>
-            <DialogDescription>
-              Enter payment details
-            </DialogDescription>
-          </DialogHeader>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>{t('payments.recordTitle')}</DialogTitle>
+              <DialogDescription>
+                {t('payments.recordDescription')}
+              </DialogDescription>
+            </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="patient-select">Patient</Label>
+              <Label htmlFor="patient-select">{t('payments.form.patient')}</Label>
               <Select value={paymentForm.patientId} onValueChange={(v) => setPaymentForm({ ...paymentForm, patientId: v })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select patient" />
+                  <SelectValue placeholder={t('payments.form.selectPatient')} />
                 </SelectTrigger>
                 <SelectContent>
                   {patientsList.length ? patientsList.map((p: any) => (
                     <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                   )) : (
-                    <SelectItem value="">No patients</SelectItem>
+                    <SelectItem value="">{t('payments.noPatients')}</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="insuranceCoverage">Insurance Coverage</Label>
+              <Label htmlFor="insuranceCoverage">{t('payments.form.insuranceCoverage')}</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <Input
@@ -413,7 +430,7 @@ export function PaymentsScreen() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount">{t('payments.form.amount')}</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <Input
@@ -427,38 +444,55 @@ export function PaymentsScreen() {
               </div>
             </div>
 
+            {paymentForm.paymentType === 'partial' && (
+              <div className="space-y-2">
+                <Label htmlFor="paymentAmount">Payment Amount</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    value={paymentForm.paymentAmount}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, paymentAmount: e.target.value })}
+                    className="pl-7"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="method">Payment Method</Label>
+              <Label htmlFor="method">{t('payments.form.paymentMethod')}</Label>
               <Select value={paymentForm.method} onValueChange={(value) => setPaymentForm({ ...paymentForm, method: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit-card">Credit Card</SelectItem>
-                  <SelectItem value="debit-card">Debit Card</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="credit-card">{t('payments.methods.creditCard')}</SelectItem>
+                  <SelectItem value="debit-card">{t('payments.methods.debitCard')}</SelectItem>
+                  <SelectItem value="cash">{t('payments.methods.cash')}</SelectItem>
+                  <SelectItem value="check">{t('payments.methods.check')}</SelectItem>
+                  <SelectItem value="bank-transfer">{t('payments.methods.bankTransfer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentType">Payment Type</Label>
+              <Label htmlFor="paymentType">{t('payments.form.paymentType')}</Label>
               <Select value={paymentForm.paymentType} onValueChange={(value) => setPaymentForm({ ...paymentForm, paymentType: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="full">Paid (Pago completo)</SelectItem>
-                  <SelectItem value="partial">Partial / Abono</SelectItem>
-                  <SelectItem value="owes">Owes / Debe</SelectItem>
+                  <SelectItem value="full">{t('payments.types.full')}</SelectItem>
+                  <SelectItem value="partial">{t('payments.types.partial')}</SelectItem>
+                  <SelectItem value="owes">{t('payments.types.owes')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transaction">Transaction ID {paymentForm.method === 'credit-card' || paymentForm.method === 'debit-card' ? '(Required for card payments)' : '(Optional)'}</Label>
+              <Label htmlFor="transaction">{t('payments.form.transactionLabel')} {paymentForm.method === 'credit-card' || paymentForm.method === 'debit-card' ? `(${t('payments.form.transactionRequired')})` : `(${t('payments.form.optional')})`}</Label>
               <Input
                 id="transaction"
                 value={paymentForm.transactionId}
@@ -471,21 +505,21 @@ export function PaymentsScreen() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Label htmlFor="notes">{t('payments.form.notes')}</Label>
               <Input
                 id="notes"
                 value={paymentForm.notes}
                 onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                placeholder="Additional notes..."
+                placeholder={t('payments.form.notesPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRecordPaymentOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={() => handleRecordPayment()} className="bg-emerald-600 hover:bg-emerald-700">
-              Record Payment
+              {t('payments.recordPayment')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -495,9 +529,9 @@ export function PaymentsScreen() {
       <Dialog open={isAddInstallmentOpen} onOpenChange={setIsAddInstallmentOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add Installment</DialogTitle>
+            <DialogTitle>{t('payments.installments.addTitle')}</DialogTitle>
             <DialogDescription>
-              Add an installment for invoice #{selectedPayment?.id}
+              {t('payments.installments.addDescription', { id: selectedPayment?.id })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -545,9 +579,10 @@ export function PaymentsScreen() {
                 const res = await createPaymentTransaction(selectedPayment.id, { amount: Number(installmentForm.amount) || 0, method: installmentForm.method, transactionId: installmentForm.transactionId || undefined, notes: installmentForm.notes });
                 const tx = res.transaction || res;
                 const updatedPayment = res.payment || res;
+                const normalizedStatus = String(updatedPayment.status).toLowerCase();
                 setPaymentTransactions(prev => [...prev, tx]);
-                setPayments(prev => prev.map(p => p.id === updatedPayment.id ? ({ ...p, amountPaid: updatedPayment.amountPaid, status: updatedPayment.status }) : p));
-                setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updatedPayment.amountPaid, status: updatedPayment.status }) : prev);
+                setPayments(prev => prev.map(p => p.id === updatedPayment.id ? ({ ...p, amountPaid: updatedPayment.amountPaid, status: normalizedStatus }) : p));
+                setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updatedPayment.amountPaid, status: normalizedStatus }) : prev);
                 setInstallmentForm({ amount: '', method: 'credit-card', transactionId: '', notes: '' });
                 setIsAddInstallmentOpen(false);
               } catch (err) {

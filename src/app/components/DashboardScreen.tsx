@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Calendar, DollarSign, CreditCard, TrendingUp, UserPlus, CalendarPlus, Wallet, Clock } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getAppointments, getPayments, getPatients } from '../lib/api';
 
@@ -13,6 +14,7 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [kpis, setKpis] = useState({ todaysAppointments: 0, monthlyRevenue: 0, outstandingPayments: 0, insuranceSavings: 0 });
@@ -76,32 +78,32 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
-          title="Today's Appointments"
+          title={t('kpi.todaysAppointments')}
           value={kpis.todaysAppointments}
           icon={Calendar}
           trend={{ value: '', isPositive: true }}
         />
         <KPICard
-          title="Monthly Revenue"
+          title={t('kpi.monthlyRevenue')}
           value={`$${kpis.monthlyRevenue.toLocaleString()}`}
           icon={DollarSign}
           trend={{ value: '', isPositive: true }}
         />
         <KPICard
-          title="Outstanding Payments"
+          title={t('kpi.outstandingPayments')}
           value={`$${kpis.outstandingPayments.toLocaleString()}`}
           icon={CreditCard}
-          description="Pending balances"
+          description={t('kpi.pendingBalances')}
         />
         <KPICard
-          title="Insurance Savings"
+          title={t('kpi.insuranceSavings')}
           value={`$${kpis.insuranceSavings.toLocaleString()}`}
           icon={TrendingUp}
           trend={{ value: '', isPositive: true }}
@@ -111,8 +113,8 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks and shortcuts</CardDescription>
+          <CardTitle>{t('quickActions.title')}</CardTitle>
+          <CardDescription>{t('quickActions.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -126,7 +128,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               }}
             >
               <UserPlus className="w-6 h-6" />
-              <span>New Patient</span>
+              <span>{t('quickActions.newPatient')}</span>
             </Button>
             <Button
               className="h-auto py-4 flex flex-col items-center gap-2 bg-teal-600 hover:bg-teal-700"
@@ -137,7 +139,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               }}
             >
               <CalendarPlus className="w-6 h-6" />
-              <span>New Appointment</span>
+              <span>{t('quickActions.newAppointment')}</span>
             </Button>
             <Button
               className="h-auto py-4 flex flex-col items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
@@ -148,7 +150,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               }}
             >
               <Wallet className="w-6 h-6" />
-              <span>Record Payment</span>
+              <span>{t('quickActions.recordPayment')}</span>
             </Button>
           </div>
         </CardContent>
@@ -158,9 +160,9 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates and actions</CardDescription>
-          </CardHeader>
+              <CardTitle>{t('recentActivity.title')}</CardTitle>
+              <CardDescription>{t('recentActivity.description')}</CardDescription>
+            </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentActivities.map((activity) => (
@@ -192,15 +194,15 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
         {/* Upcoming Appointments */}
         <Card>
           <CardHeader>
-            <CardTitle>Today's Schedule</CardTitle>
-            <CardDescription>Upcoming appointments</CardDescription>
-          </CardHeader>
+              <CardTitle>{t('upcoming.title')}</CardTitle>
+              <CardDescription>{t('upcoming.description')}</CardDescription>
+            </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {upcomingAppointments.map((appointment) => (
                 <div key={appointment.id} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <div className="flex flex-col items-center justify-center w-16 h-16 rounded-lg bg-blue-100 text-blue-700">
-                    <span className="text-xs font-medium">Time</span>
+                    <span className="text-xs font-medium">{t('appointment.timeLabel')}</span>
                     <span className="text-sm font-bold">{appointment.time}</span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -216,7 +218,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
                 className="w-full"
                 onClick={() => onNavigate('appointments')}
               >
-                View Full Calendar
+                {t('viewFullCalendar')}
               </Button>
             </div>
           </CardContent>

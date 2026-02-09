@@ -49,6 +49,7 @@ export const createPatient = async (payload: {
   name: string;
   email: string;
   phone: string;
+  nationalId?: string;
   dateOfBirth: string;
   address?: string;
   insurance?: string;
@@ -63,6 +64,7 @@ export const updatePatient = async (
     name?: string;
     email?: string;
     phone?: string;
+    nationalId?: string;
     dateOfBirth?: string;
     address?: string;
     insurance?: string;
@@ -208,6 +210,11 @@ export const getConsents = async (patientId?: number) => {
   return data;
 };
 
+export const getConsent = async (id: number) => {
+  const { data } = await api.get(`/api/consents/${id}`);
+  return data; // { consent: {...} }
+};
+
 export const createConsent = async (payload: {
   patientId: number;
   templateId?: string;
@@ -223,6 +230,11 @@ export const signConsent = async (id: number, signerName?: string) => {
     signerName,
   });
   return data;
+};
+
+export const updateConsent = async (id: number, payload: any) => {
+  const { data } = await api.put(`/api/consents/${id}`, payload);
+  return data; // { consent: {...} }
 };
 
 export const deleteConsent = async (id: number) => {
@@ -250,6 +262,11 @@ export const getDocuments = async (type?: string, patientId?: number) => {
   if (patientId) params.patientId = patientId;
   const { data } = await api.get("/api/documents", { params });
   return data;
+};
+
+export const getDocument = async (id: number) => {
+  const { data } = await api.get(`/api/documents/${id}`);
+  return data; // { document: {...} }
 };
 
 export const deleteDocument = async (id: number) => {

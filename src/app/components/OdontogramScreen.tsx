@@ -27,9 +27,11 @@ interface ToothData {
 }
 
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure } from '../lib/api';
 
 export function OdontogramScreen({ patientId }: { patientId?: number }) {
+  const { t } = useTranslation();
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [teethData, setTeethData] = useState<Map<number, ToothData>>(new Map());
   const [patientName, setPatientName] = useState<string | null>(null);
@@ -277,8 +279,8 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Odontogram</h1>
-        <p className="text-gray-600 mt-1">Interactive dental chart for patient: {patientName ?? `#${patientId}`}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('odontogram.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('odontogram.subtitle', { patient: patientName ?? `#${patientId}` })}</p>
       </div>
 
       {/* Legend */}
@@ -287,19 +289,19 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-white border-2 border-gray-300"></div>
-              <span className="text-sm text-gray-700">Healthy</span>
+              <span className="text-sm text-gray-700">{t('odontogram.legend.healthy')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-amber-400 border-2 border-amber-600"></div>
-              <span className="text-sm text-gray-700">Planned</span>
+              <span className="text-sm text-gray-700">{t('odontogram.legend.planned')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-blue-400 border-2 border-blue-600"></div>
-              <span className="text-sm text-gray-700">In Progress</span>
+              <span className="text-sm text-gray-700">{t('odontogram.legend.inProgress')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-emerald-400 border-2 border-emerald-600"></div>
-              <span className="text-sm text-gray-700">Completed</span>
+              <span className="text-sm text-gray-700">{t('odontogram.legend.completed')}</span>
             </div>
           </div>
         </CardContent>
@@ -308,15 +310,15 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
       {/* Dental Chart */}
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Dental Chart (FDI Notation)</CardTitle>
-          <CardDescription>Click on any tooth to view or add procedures</CardDescription>
+          <CardTitle>{t('odontogram.chartTitle')}</CardTitle>
+          <CardDescription>{t('odontogram.chartDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="p-8">
           <div className="space-y-12">
             {/* Upper Arch */}
             <div>
               <div className="text-center mb-4">
-                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">Upper Arch</span>
+                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">{t('odontogram.upperArch')}</span>
               </div>
               <div className="flex justify-center items-end gap-1 px-4" style={{ 
                 display: 'flex',
@@ -359,7 +361,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
             {/* Lower Arch */}
             <div>
               <div className="text-center mb-4">
-                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">Lower Arch</span>
+                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">{t('odontogram.lowerArch')}</span>
               </div>
               <div className="flex justify-center items-start gap-1 px-4" style={{ 
                 display: 'flex',
@@ -406,9 +408,9 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
       <Sheet open={selectedTooth !== null} onOpenChange={() => setSelectedTooth(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Tooth #{selectedTooth}</SheetTitle>
+            <SheetTitle>{t('odontogram.toothTitle', { num: selectedTooth })}</SheetTitle>
             <SheetDescription>
-              View procedures and add new treatments
+              {t('odontogram.toothDescription')}
             </SheetDescription>
           </SheetHeader>
 
@@ -416,7 +418,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
             {/* Existing Procedures */}
             {selectedToothData && selectedToothData.procedures.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Procedure History</h3>
+                <h3 className="text-lg font-semibold mb-4">{t('odontogram.procedureHistory.title')}</h3>
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-4">
                     {selectedToothData.procedures.map((procedure) => (
@@ -430,7 +432,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                             <div className="flex items-start justify-between">
                               <div>
                                 <h4 className="font-semibold text-gray-900">{procedure.treatment}</h4>
-                                <p className="text-sm text-gray-600">Condition: {procedure.condition}</p>
+                                <p className="text-sm text-gray-600">{t('odontogram.labels.condition')}: {procedure.condition}</p>
                               </div>
                               <StatusBadge status={procedure.status} />
                             </div>
@@ -444,14 +446,14 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                                 ${procedure.cost}
                               </div>
                             </div>
-                            <p className="text-sm text-gray-600">Doctor: {procedure.doctor}</p>
+                            <p className="text-sm text-gray-600">{t('odontogram.labels.doctor')}: {procedure.doctor}</p>
                             <div className="mt-4 space-y-3">
                               <div>
-                                <Label>Notes</Label>
+                                <Label>{t('odontogram.labels.notes')}</Label>
                                 <Textarea
                                   value={procEdits[String(procedure.id)]?.notes ?? procedure.notes ?? ''}
                                   onChange={(e) => setProcEdits(prev => ({ ...prev, [String(procedure.id)]: { ...prev[String(procedure.id)], notes: e.target.value } }))}
-                                  placeholder="Add notes for this procedure"
+                                  placeholder={t('odontogram.placeholders.notes')}
                                   rows={3}
                                 />
                               </div>
@@ -467,15 +469,15 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                                 </div>
 
                                 <div>
-                                  <Label>Status</Label>
+                                  <Label>{t('odontogram.labels.status')}</Label>
                                   <Select value={(procEdits[String(procedure.id)]?.status) || procedure.status} onValueChange={(value: any) => setProcEdits(prev => ({ ...prev, [String(procedure.id)]: { ...prev[String(procedure.id)], status: value } }))}>
                                     <SelectTrigger>
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="Planned">Planned</SelectItem>
-                                      <SelectItem value="In Progress">In Progress</SelectItem>
-                                      <SelectItem value="Completed">Completed</SelectItem>
+                                      <SelectItem value="Planned">{t('odontogram.status.planned')}</SelectItem>
+                                      <SelectItem value="In Progress">{t('odontogram.status.inProgress')}</SelectItem>
+                                      <SelectItem value="Completed">{t('odontogram.status.completed')}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -483,10 +485,10 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
 
                               <div className="flex gap-3">
                                 <Button onClick={() => handleUpdateProcedure(String(procedure.id))} className="h-10">
-                                  Save
+                                  {t('odontogram.actions.save')}
                                 </Button>
                                 <Button variant="outline" className="h-10" onClick={() => setProcEdits(prev => { const c = { ...prev }; delete c[String(procedure.id)]; return c; })}>
-                                  Cancel
+                                  {t('common.cancel')}
                                 </Button>
                               </div>
                             </div>
@@ -501,14 +503,14 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
 
             {/* Add New Procedure Form */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Add New Procedure</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('odontogram.addNew.title')}</h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Condition</Label>
+                    <Label>{t('odontogram.labels.condition')}</Label>
                     <Select value={newProcedure.condition || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, condition: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select condition" />
+                        <SelectValue placeholder={t('odontogram.placeholders.selectCondition')} />
                       </SelectTrigger>
                       <SelectContent>
                         {(conditionOptions.length ? conditionOptions : ["Cavity","Root Canal Required","Crown Needed","Missing Tooth","Gum Disease","Fracture"]).map((c) => (
@@ -518,10 +520,10 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Treatment</Label>
+                    <Label>{t('odontogram.labels.treatment')}</Label>
                     <Select value={newProcedure.treatment || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, treatment: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select treatment" />
+                        <SelectValue placeholder={t('odontogram.placeholders.selectTreatment')} />
                       </SelectTrigger>
                       <SelectContent>
                         {(treatmentOptions.length ? treatmentOptions : ["Composite Filling","Root Canal Therapy","Crown Placement","Dental Implant","Extraction","Cleaning & Scaling"]).map((t) => (
@@ -534,20 +536,20 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Status</Label>
+                    <Label>{t('odontogram.labels.status')}</Label>
                     <Select value={newProcedure.status} onValueChange={(value: any) => setNewProcedure({ ...newProcedure, status: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Planned">Planned</SelectItem>
-                        <SelectItem value="In Progress">In Progress</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Planned">{t('odontogram.status.planned')}</SelectItem>
+                        <SelectItem value="In Progress">{t('odontogram.status.inProgress')}</SelectItem>
+                        <SelectItem value="Completed">{t('odontogram.status.completed')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Doctor</Label>
+                    <Label>{t('odontogram.labels.doctor')}</Label>
                     <Select value={newProcedure.doctor || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, doctor: value })}>
                       <SelectTrigger>
                         <SelectValue />
@@ -568,7 +570,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Cost ($)</Label>
+                    <Label>{t('odontogram.labels.cost')}</Label>
                     <Input
                       type="number"
                       value={newProcedure.cost}
@@ -577,7 +579,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Date</Label>
+                    <Label>{t('odontogram.labels.date')}</Label>
                     <Input
                       type="date"
                       value={newProcedure.date}
@@ -587,18 +589,18 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Notes (Optional)</Label>
+                  <Label>{t('odontogram.labels.notesOptional')}</Label>
                   <Textarea
                     value={newProcedure.notes}
                     onChange={(e) => setNewProcedure({ ...newProcedure, notes: e.target.value })}
-                    placeholder="Additional notes about the procedure..."
+                    placeholder={t('odontogram.placeholders.additionalNotes')}
                     rows={3}
                   />
                 </div>
 
                 <Button onClick={handleAddProcedure} className="w-full bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Procedure
+                  {t('odontogram.actions.addProcedure')}
                 </Button>
               </div>
             </div>

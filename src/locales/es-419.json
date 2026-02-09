@@ -1,0 +1,475 @@
+{
+  "nav": {
+    "dashboard": "Tablero",
+    "patients": "Pacientes",
+    "appointments": "Citas",
+    "payments": "Pagos",
+    "insurance": "Seguros",
+    "documents": "Documentos",
+    "consentForms": "Formularios de consentimiento",
+    "reports": "Reportes",
+    "userManagement": "Gestión de usuarios"
+  },
+  "logo": {
+    "subtitle": "Gestión de la clínica"
+  },
+  "collapse": "Colapsar",
+  "welcome": {
+    "back": "Bienvenido de nuevo,"
+  },
+  "user": {
+    "anon": "Usuario",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
+  },
+  "notifications": {
+    "upcoming": "Próximas citas",
+    "next60": "Próximos 60 minutos",
+    "none": "No hay citas próximas en la siguiente hora."
+  },
+  "settings": {
+    "language": "Idioma"
+  },
+  "viewCalendar": "Ver calendario",
+  "openSchedule": "Abrir agenda completa"
+  ,
+  "dashboard": {
+    "title": "Tablero",
+    "subtitle": "¡Bienvenido de nuevo! Esto es lo que sucede hoy."
+  },
+  "kpi": {
+    "todaysAppointments": "Citas de hoy",
+    "monthlyRevenue": "Ingresos mensuales",
+    "outstandingPayments": "Pagos pendientes",
+    "insuranceSavings": "Ahorros por seguros",
+    "pendingBalances": "Saldos pendientes"
+  },
+  "quickActions": {
+    "title": "Acciones rápidas",
+    "description": "Tareas y accesos directos comunes",
+    "newPatient": "Nuevo paciente",
+    "newAppointment": "Nueva cita",
+    "recordPayment": "Registrar pago"
+  },
+  "recentActivity": {
+    "title": "Actividad reciente",
+    "description": "Últimas actualizaciones y acciones"
+  },
+  "upcoming": {
+    "title": "Agenda de hoy",
+    "description": "Próximas citas"
+  },
+  "appointment": {
+    "timeLabel": "Hora"
+  },
+  "viewFullCalendar": "Ver calendario completo",
+  "reports": {
+    "title": "Reportes y análisis",
+    "subtitle": "Información financiera y métricas de rendimiento",
+    "dateRanges": {
+      "last7": "Últimos 7 días",
+      "last30": "Últimos 30 días",
+      "last90": "Últimos 90 días",
+      "lastYear": "Último año",
+      "custom": "Rango personalizado"
+    },
+    "export": "Exportar reporte",
+    "kpi": {
+      "totalRevenue": "Ingresos totales",
+      "outstanding": "Pendiente",
+      "procedures": "Procedimientos",
+      "newPatients": "Nuevos pacientes"
+    },
+    "revenueTrend": {
+      "title": "Tendencia de ingresos",
+      "description": "Comparación de ingresos mensuales vs objetivo"
+    },
+    "series": {
+      "actualRevenue": "Ingresos reales",
+      "target": "Objetivo"
+    },
+    "procedureStats": {
+      "title": "Estadísticas de procedimientos",
+      "description": "Ingresos por tipo de procedimiento"
+    },
+    "insuranceDistribution": {
+      "title": "Distribución de seguros",
+      "description": "Cobertura de pacientes por proveedor"
+    },
+    "outstandingAging": {
+      "title": "Saldos pendientes por antigüedad",
+      "description": "Informe de antigüedad para facturas impagas"
+    },
+    "details": {
+      "title": "Detalles de rendimiento por procedimiento",
+      "description": "Desglose completo por tipo de procedimiento"
+    },
+    "table": {
+      "procedure": "Procedimiento",
+      "count": "Cantidad",
+      "totalRevenue": "Ingresos totales",
+      "avgPerProcedure": "Promedio por procedimiento",
+      "percentOfTotal": "% del total"
+    }
+  }
+ ,
+  "loading": {
+    "user": "Cargando usuario..."
+  },
+  "appointments": {
+    "title": "Citas",
+    "subtitle": "Administra las citas y la programación de pacientes",
+    "newAppointment": "Nueva cita",
+    "today": "Hoy",
+    "view": {
+      "day": "Día",
+      "week": "Semana"
+    },
+    "doctorSchedule": "Agenda de {{name}}",
+    "countLabel": "citas",
+    "timeLabel": "Hora",
+    "available": "Disponible",
+    "complete": "Completar",
+    "cancel": "Cancelar",
+    "reopen": "Marcar como programada"
+  },
+  "appointmentForm": {
+    "scheduleTitle": "Programar nueva cita",
+    "scheduleDescription": "Crear una nueva cita para un paciente",
+    "patientLabel": "Paciente",
+    "selectPatient": "Seleccionar paciente",
+    "doctorLabel": "Doctor",
+    "procedureLabel": "Procedimiento",
+    "selectProcedure": "Seleccionar procedimiento",
+    "dateLabel": "Fecha",
+    "timeLabel": "Hora",
+    "durationLabel": "Duración (minutos)",
+    "durationOptions": {
+      "30": "30 minutos",
+      "45": "45 minutos",
+      "60": "60 minutos",
+      "90": "90 minutos",
+      "120": "120 minutos"
+    },
+    "procedures": {
+      "teethCleaning": "Limpieza dental",
+      "rootCanal": "Tratamiento de conducto",
+      "crownPlacement": "Colocación de corona",
+      "filling": "Empaste",
+      "extraction": "Extracción",
+      "consultation": "Consulta",
+      "checkup": "Revisión"
+    },
+    "pastDateError": "No se pueden programar citas en el pasado",
+    "errors": {
+      "selectPatient": "Por favor selecciona un paciente válido.",
+      "selectDoctor": "Por favor selecciona un doctor válido.",
+      "duplicateSlot": "El doctor {{doctor}} ya tiene una cita a las {{time}}. Elige otra hora.",
+      "createFailed": "Error al crear la cita: {{message}}"
+    },
+    "noAppts": "Sin citas",
+    "scheduleButton": "Programar cita"
+  },
+  "payments": {
+    "title": "Pagos y Facturación",
+    "subtitle": "Administra pagos, facturas y facturación",
+    "recordPayment": "Registrar pago",
+    "recordTitle": "Registrar nuevo pago",
+    "recordDescription": "Ingrese los detalles del pago",
+    "kpi": {
+      "totalOutstanding": "Total pendiente",
+      "fromInvoices": "De {{count}} facturas",
+      "insuranceSavings": "Ahorros por seguros",
+      "thisMonth": "Este mes",
+      "overduePayments": "Pagos vencidos",
+      "requiresFollowUp": "Requiere seguimiento"
+    },
+    "searchPlaceholder": "Buscar pagos por paciente o procedimiento...",
+    "records": {
+      "title": "Registros de pagos ({{count}})",
+      "description": "Ver y administrar el historial de pagos"
+    },
+    "table": {
+      "patient": "Paciente",
+      "procedure": "Procedimiento",
+      "description": "Descripción",
+      "amount": "Importe",
+      "date": "Fecha",
+      "original": "Original",
+      "insurance": "Seguro",
+      "finalAmount": "Importe final",
+      "paid": "Pagado",
+      "balance": "Saldo",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "transactions": {
+      "loading": "Cargando transacciones...",
+      "none": "No hay transacciones registradas"
+    },
+    "actions": {
+      "addInstallment": "Agregar cuota",
+      "completePayment": "Completar pago"
+    },
+    "details": {
+      "title": "Detalles del pago - Factura #{{id}}"
+    },
+    "labels": {
+      "patientResponsibility": "Responsabilidad del paciente",
+      "paid": "Pagado"
+    },
+    "installments": {
+      "title": "Historial de cuotas",
+      "addTitle": "Agregar cuota",
+      "addDescription": "Agregar una cuota para la factura #{{id}}"
+    },
+    "noPatients": "No hay pacientes"
+    ,
+    "form": {
+      "patient": "Paciente",
+      "selectPatient": "Seleccionar paciente",
+      "insuranceCoverage": "Cobertura de seguro",
+      "amount": "Monto",
+      "paymentMethod": "Método de pago",
+      "paymentType": "Tipo de pago",
+      "transactionLabel": "ID de transacción",
+      "transactionRequired": "Requerido para pagos con tarjeta",
+      "optional": "Opcional",
+      "notes": "Notas (Opcional)",
+      "notesPlaceholder": "Notas adicionales..."
+    },
+    "methods": {
+      "creditCard": "Tarjeta de crédito",
+      "debitCard": "Tarjeta de débito",
+      "cash": "Efectivo",
+      "check": "Cheque",
+      "bankTransfer": "Transferencia bancaria"
+    },
+    "types": {
+      "full": "Pago completo",
+      "partial": "Parcial / Abono",
+      "owes": "Debe / Owes"
+    }
+  },
+  "documents": {
+    "title": "Gestión de documentos",
+    "subtitle": "Sube y administra documentos de pacientes",
+    "upload": {
+      "drop": "Suelta archivos aquí para subirlos",
+      "orBrowse": "o haz clic para buscar en tu computadora",
+      "browseButton": "Buscar archivos",
+      "supported": "Formatos compatibles: PDF, JPG, PNG, DOC (Máx 10MB)"
+    },
+    "searchPlaceholder": "Buscar documentos por nombre, paciente o categoría...",
+    "allTitle": "Todos los documentos ({{count}})",
+    "description": "Administra y organiza archivos de pacientes",
+    "tabs": {
+      "grid": "Vista de cuadrícula",
+      "list": "Vista de lista"
+    },
+    "empty": {
+      "noDocuments": "No se han subido documentos aún",
+      "addFirst": "Sube tu primer documento"
+    },
+    "card": {
+      "uploadedBy": "Subido por {{name}}"
+    },
+    "confirmDelete": "¿Eliminar este documento?"
+  },
+  "insurance": {
+    "title": "Gestión de Seguros",
+    "subtitle": "Administra compañías de seguros, planes y coberturas",
+    "addCompany": "Agregar compañía de seguros",
+    "kpi": {
+      "totalCompanies": "Total de compañías",
+      "totalPlans": "Total de planes",
+      "avgPlansPerCompany": "Promedio de planes por compañía",
+      "providers": "Proveedores de seguros",
+      "activePlans": "Planes de seguro activos",
+      "diversity": "Diversidad de planes"
+    },
+    "searchPlaceholder": "Buscar compañías de seguros...",
+    "table": {
+      "title": "Compañías de seguros ({{count}})",
+      "description": "Haga clic en una compañía para ver y administrar sus planes",
+      "headers": {
+        "companyName": "Nombre de la compañía",
+        "numberOfPlans": "Número de planes",
+        "actions": "Acciones"
+      },
+      "planCount": "{{count}} planes"
+    }
+    ,
+    "view": {
+      "backToPlans": "Volver a planes",
+      "addProcedure": "Agregar procedimiento",
+      "planSummary": {
+        "totalProcedures": "Procedimientos totales",
+        "avgCoverageAmount": "Cobertura promedio",
+        "avgPatientCopay": "Copago promedio del paciente"
+      },
+      "coveredProcedures": {
+        "title": "Procedimientos cubiertos",
+        "description": "Administre los montos de cobertura de procedimientos y los porcentajes de copago del paciente"
+      },
+      "noProcedures": "Aún no se han agregado procedimientos",
+      "addFirstProcedure": "Agregar su primer procedimiento",
+      "table": {
+        "procedureName": "Nombre del procedimiento",
+        "coverageAmount": "Monto de cobertura",
+        "patientCopay": "Copago del paciente %",
+        "actions": "Acciones"
+      },
+      "actions": {
+        "edit": "Editar",
+        "delete": "Eliminar"
+      }
+    }
+  },
+  "companyDetail": {
+    "backToCompanies": "Volver a compañías",
+    "plansCount": "{{count}} planes de seguro",
+    "addPlan": "Agregar plan",
+    "plans": {
+      "title": "Planes de seguros",
+      "description": "Haga clic en un plan para administrar procedimientos y detalles de cobertura",
+      "noPlans": "Aún no se han creado planes",
+      "addFirstPlan": "Agregar su primer plan",
+      "table": {
+        "planName": "Nombre del plan",
+        "planType": "Tipo de plan",
+        "proceduresCovered": "Procedimientos cubiertos",
+        "actions": "Acciones"
+      }
+    }
+  },
+
+  "patients": {
+    "title": "Pacientes",
+    "subtitle": "Administra los registros e información de los pacientes",
+    "addPatient": "Agregar paciente",
+    "searchPlaceholder": "Buscar pacientes por nombre, correo o teléfono...",
+    "listTitle": "Lista de pacientes ({{count}})",
+    "listDescription": "Ver y administrar registros de pacientes",
+    "table": {
+      "name": "Nombre",
+      "contact": "Contacto",
+      "dateOfBirth": "Fecha de nacimiento",
+      "lastVisit": "Última visita",
+      "nextAppointment": "Próxima cita",
+      "balance": "Saldo",
+      "actions": "Acciones"
+    },
+    "view": "Ver",
+    "edit": "Editar",
+    "none": "Ninguno",
+    "createModal": {
+      "title": "Agregar nuevo paciente",
+      "description": "Crear un nuevo registro de paciente",
+      "createButton": "Crear paciente",
+      "labels": {
+        "fullName": "Nombre completo",
+        "dob": "Fecha de nacimiento",
+        "email": "Correo electrónico",
+        "phone": "Teléfono",
+        "address": "Dirección",
+        "insurance": "Proveedor de seguros"
+      },
+      "placeholders": {
+        "fullName": "Juan Pérez",
+        "email": "juan.perez@email.com",
+        "phone": "(55) 1234-5678",
+        "address": "Calle Falsa 123, Ciudad",
+        "insurance": "BlueCross BlueShield"
+      }
+    },
+    "editModal": {
+      "title": "Editar paciente",
+      "description": "Actualizar registro del paciente",
+      "updateButton": "Actualizar paciente"
+    },
+    "profile": {
+      "back": "Volver",
+      "patientId": "ID de paciente: #{{id}}",
+      "newAppointment": "Nueva cita",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "dateOfBirth": "Fecha de nacimiento",
+      "outstandingBalance": "Saldo pendiente",
+      "tabs": {
+        "overview": "Resumen",
+        "history": "Historial médico",
+        "odontogram": "Odontograma",
+        "payments": "Pagos",
+        "documents": "Documentos"
+      },
+      "recentAppointments": {
+        "title": "Citas recientes"
+      },
+      "upcomingAppointments": {
+        "title": "Próximas citas"
+      },
+      "medicalHistory": {
+        "title": "Cronología del historial médico"
+      },
+      "payments": {
+        "title": "Historial de pagos",
+        "none": "No se encontraron pagos para este paciente"
+      }
+    }
+  },
+
+
+    "odontogram": {
+      "title": "Odontograma",
+      "subtitle": "Gráfico dental interactivo para el paciente: {{patient}}",
+      "legend": {
+        "healthy": "Saludable",
+        "planned": "Planificado",
+        "inProgress": "En progreso",
+        "completed": "Completado"
+      },
+      "chartTitle": "Gráfico dental (Notación FDI)",
+      "chartDescription": "Haz clic en cualquier diente para ver o agregar procedimientos",
+      "upperArch": "Arcada superior",
+      "lowerArch": "Arcada inferior",
+      "toothTitle": "Diente #{{num}}",
+      "toothDescription": "Ver procedimientos y agregar nuevos tratamientos",
+      "procedureHistory": {
+        "title": "Historial de procedimientos"
+      },
+      "labels": {
+        "condition": "Condición",
+        "treatment": "Tratamiento",
+        "doctor": "Doctor",
+        "cost": "Costo ($)",
+        "date": "Fecha",
+        "notes": "Notas",
+        "notesOptional": "Notas (Opcional)",
+        "status": "Estado"
+      },
+      "placeholders": {
+        "notes": "Agregar notas para este procedimiento",
+        "selectCondition": "Seleccionar condición",
+        "selectTreatment": "Seleccionar tratamiento",
+        "additionalNotes": "Notas adicionales sobre el procedimiento..."
+      },
+      "status": {
+        "planned": "Planificado",
+        "inProgress": "En progreso",
+        "completed": "Completado"
+      },
+      "addNew": {
+        "title": "Agregar nuevo procedimiento"
+      },
+      "actions": {
+        "save": "Guardar",
+        "addProcedure": "Agregar procedimiento"
+      }
+    },
+  "common": {
+    "close": "Cerrar",
+    "view": "Ver",
+    "cancel": "Cancelar"
+  }
+}

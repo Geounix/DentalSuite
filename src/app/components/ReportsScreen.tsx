@@ -6,8 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, Calendar, TrendingUp, DollarSign, Activity, Users } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function ReportsScreen() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState('last-30-days');
 
   const revenueData = [
@@ -51,8 +53,8 @@ export function ReportsScreen() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-1">Financial insights and performance metrics</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('reports.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('reports.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -62,17 +64,17 @@ export function ReportsScreen() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="last-7-days">Last 7 days</SelectItem>
-                <SelectItem value="last-30-days">Last 30 days</SelectItem>
-                <SelectItem value="last-90-days">Last 90 days</SelectItem>
-                <SelectItem value="last-year">Last year</SelectItem>
-                <SelectItem value="custom">Custom range</SelectItem>
+                <SelectItem value="last-7-days">{t('reports.dateRanges.last7')}</SelectItem>
+                <SelectItem value="last-30-days">{t('reports.dateRanges.last30')}</SelectItem>
+                <SelectItem value="last-90-days">{t('reports.dateRanges.last90')}</SelectItem>
+                <SelectItem value="last-year">{t('reports.dateRanges.lastYear')}</SelectItem>
+                <SelectItem value="custom">{t('reports.dateRanges.custom')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Download className="w-4 h-4 mr-2" />
-            Export Report
+            {t('reports.export')}
           </Button>
         </div>
       </div>
@@ -81,7 +83,7 @@ export function ReportsScreen() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('reports.kpi.totalRevenue')}</CardTitle>
             <DollarSign className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -92,7 +94,7 @@ export function ReportsScreen() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Outstanding</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('reports.kpi.outstanding')}</CardTitle>
             <TrendingUp className="h-5 w-5 text-amber-600" />
           </CardHeader>
           <CardContent>
@@ -103,7 +105,7 @@ export function ReportsScreen() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Procedures</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('reports.kpi.procedures')}</CardTitle>
             <Activity className="h-5 w-5 text-emerald-600" />
           </CardHeader>
           <CardContent>
@@ -114,7 +116,7 @@ export function ReportsScreen() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">New Patients</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('reports.kpi.newPatients')}</CardTitle>
             <Users className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
@@ -127,8 +129,8 @@ export function ReportsScreen() {
       {/* Revenue Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Revenue Trend</CardTitle>
-          <CardDescription>Monthly revenue vs. target comparison</CardDescription>
+          <CardTitle>{t('reports.revenueTrend.title')}</CardTitle>
+          <CardDescription>{t('reports.revenueTrend.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={350}>
@@ -141,8 +143,8 @@ export function ReportsScreen() {
                 formatter={(value: any) => `$${value.toLocaleString()}`}
               />
               <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} name="Actual Revenue" />
-              <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
+              <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} name={t('reports.series.actualRevenue')} />
+              <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name={t('reports.series.target')} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -152,8 +154,8 @@ export function ReportsScreen() {
         {/* Procedure Statistics */}
         <Card>
           <CardHeader>
-            <CardTitle>Procedure Statistics</CardTitle>
-            <CardDescription>Revenue by procedure type</CardDescription>
+            <CardTitle>{t('reports.procedureStats.title')}</CardTitle>
+            <CardDescription>{t('reports.procedureStats.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
@@ -175,9 +177,9 @@ export function ReportsScreen() {
         {/* Insurance Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Insurance Distribution</CardTitle>
-            <CardDescription>Patient coverage by provider</CardDescription>
-          </CardHeader>
+          <CardTitle>{t('reports.insuranceDistribution.title')}</CardTitle>
+          <CardDescription>{t('reports.insuranceDistribution.description')}</CardDescription>
+        </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <PieChart>
@@ -207,9 +209,9 @@ export function ReportsScreen() {
 
       {/* Outstanding Balances */}
       <Card>
-        <CardHeader>
-          <CardTitle>Outstanding Balances by Age</CardTitle>
-          <CardDescription>Aging report for unpaid invoices</CardDescription>
+          <CardHeader>
+          <CardTitle>{t('reports.outstandingAging.title')}</CardTitle>
+          <CardDescription>{t('reports.outstandingAging.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -230,19 +232,19 @@ export function ReportsScreen() {
       {/* Detailed Metrics Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Procedure Performance Details</CardTitle>
-          <CardDescription>Comprehensive breakdown by procedure type</CardDescription>
+          <CardTitle>{t('reports.details.title')}</CardTitle>
+          <CardDescription>{t('reports.details.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">Procedure</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">Count</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">Total Revenue</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">Avg per Procedure</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">% of Total</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t('reports.table.procedure')}</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">{t('reports.table.count')}</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">{t('reports.table.totalRevenue')}</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">{t('reports.table.avgPerProcedure')}</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">{t('reports.table.percentOfTotal')}</th>
                 </tr>
               </thead>
               <tbody>

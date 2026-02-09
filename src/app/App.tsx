@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { LoginScreen } from './components/LoginScreen';
@@ -48,18 +49,19 @@ type Screen =
   | 'reports';
 
 const navigationItems = [
-  { id: 'dashboard' as Screen, label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'patients' as Screen, label: 'Patients', icon: Users },
-  { id: 'appointments' as Screen, label: 'Appointments', icon: Calendar },
-  { id: 'payments' as Screen, label: 'Payments', icon: DollarSign },
-  { id: 'insurance' as Screen, label: 'Insurance', icon: Shield },
-  { id: 'documents' as Screen, label: 'Documents', icon: FileText },
-  { id: 'consent-forms' as Screen, label: 'Consent Forms', icon: FileCheck },
-  { id: 'reports' as Screen, label: 'Reports', icon: BarChart3 },
-  { id: 'users' as Screen, label: 'User Management', icon: UserCog },
+  { id: 'dashboard' as Screen, labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { id: 'patients' as Screen, labelKey: 'nav.patients', icon: Users },
+  { id: 'appointments' as Screen, labelKey: 'nav.appointments', icon: Calendar },
+  { id: 'payments' as Screen, labelKey: 'nav.payments', icon: DollarSign },
+  { id: 'insurance' as Screen, labelKey: 'nav.insurance', icon: Shield },
+  { id: 'documents' as Screen, labelKey: 'nav.documents', icon: FileText },
+  { id: 'consent-forms' as Screen, labelKey: 'nav.consentForms', icon: FileCheck },
+  { id: 'reports' as Screen, labelKey: 'nav.reports', icon: BarChart3 },
+  { id: 'users' as Screen, labelKey: 'nav.userManagement', icon: UserCog },
 ];
 
 function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any, setIsLoggedIn: any }) {
+  const { t, i18n } = useTranslation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location = useLocation();
@@ -90,7 +92,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">DentaCare</h1>
-                <p className="text-xs text-gray-600">Clinic Management</p>
+                <p className="text-xs text-gray-600">{t('logo.subtitle')}</p>
               </div>
             </div>
           )}
@@ -123,10 +125,10 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
                     ${isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100'}
                     ${isSidebarCollapsed ? 'justify-center' : ''}
                   `}
-                  title={isSidebarCollapsed ? item.label : ''}
+                  title={isSidebarCollapsed ? t(item.labelKey) : ''}
                 >
                   <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-600'}`} />
-                  {!isSidebarCollapsed && <span>{item.label}</span>}
+                  {!isSidebarCollapsed && <span>{t(item.labelKey)}</span>}
                 </Link>
               );
             })}
@@ -139,10 +141,10 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : (
+                {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : (
               <>
                 <ChevronLeft className="w-5 h-5" />
-                <span className="text-sm">Collapse</span>
+                <span className="text-sm">{t('collapse')}</span>
               </>
             )}
           </button>
@@ -171,8 +173,8 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
             </button>
             
             <div className="hidden md:block">
-              <p className="text-sm text-gray-600">Welcome back,</p>
-              <p className="font-semibold text-gray-900">{user?.name ?? 'User'}</p>
+              <p className="text-sm text-gray-600">{t('welcome.back')}</p>
+              <p className="font-semibold text-gray-900">{user?.name ?? t('user.anon')}</p>
             </div>
           </div>
 
@@ -187,8 +189,8 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
                 <div className="px-3 py-2 border-b">
-                  <p className="text-sm font-medium">Upcoming appointments</p>
-                  <p className="text-xs text-gray-500">Next 60 minutes</p>
+                  <p className="text-sm font-medium">{t('notifications.upcoming')}</p>
+                  <p className="text-xs text-gray-500">{t('notifications.next60')}</p>
                 </div>
                 <UpcomingNotifications />
               </DropdownMenuContent>
@@ -203,12 +205,12 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2 border-b">
-                  <p className="text-sm font-medium">Language</p>
+                  <p className="text-sm font-medium">{t('settings.language')}</p>
                 </div>
-                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'es-419'); window.location.reload(); }}>
+                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'es-419'); i18n.changeLanguage('es-419'); }}>
                   Español (Latinoamérica)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'en'); window.location.reload(); }}>
+                <DropdownMenuItem onClick={() => { localStorage.setItem('language', 'en'); i18n.changeLanguage('en'); }}>
                   English
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -230,7 +232,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem>
                   <Settings className="w-4 h-4 mr-2" />
-                  Settings
+                  {t('user.settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => {
@@ -240,7 +242,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
                   setIsLoggedIn(false);
                 }}>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Logout
+                  {t('user.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -271,6 +273,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
 }
 
 function UpcomingNotifications() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -318,9 +321,9 @@ function UpcomingNotifications() {
   if (!items.length) {
     return (
       <div className="px-3 py-3">
-        <p className="text-sm text-gray-600">No upcoming appointments in the next hour.</p>
+        <p className="text-sm text-gray-600">{t('notifications.none')}</p>
         <div className="mt-3">
-          <button className="w-full text-left text-sm text-blue-600" onClick={() => navigate('/appointments')}>View calendar</button>
+          <button className="w-full text-left text-sm text-blue-600" onClick={() => navigate('/appointments')}>{t('viewCalendar')}</button>
         </div>
       </div>
     );
@@ -341,7 +344,7 @@ function UpcomingNotifications() {
       ))}
       <DropdownMenuSeparator />
       <div className="px-2 py-1">
-        <button className="w-full text-sm text-gray-600" onClick={() => navigate('/appointments')}>Open full schedule</button>
+        <button className="w-full text-sm text-gray-600" onClick={() => navigate('/appointments')}>{t('openSchedule')}</button>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,6 +19,7 @@ interface DocumentItem {
 }
 
 export function DocumentsScreen() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -136,8 +138,8 @@ export function DocumentsScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
-        <p className="text-gray-600 mt-1">Upload and manage patient documents</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('documents.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('documents.subtitle')}</p>
       </div>
 
       {/* Upload Area */}
@@ -152,16 +154,16 @@ export function DocumentsScreen() {
             onDrop={handleDrop}
           >
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Drop files here to upload</h3>
-            <p className="text-sm text-gray-600 mb-4">or click to browse from your computer</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('documents.upload.drop')}</h3>
+            <p className="text-sm text-gray-600 mb-4">{t('documents.upload.orBrowse')}</p>
             <div>
               <input ref={fileInputRef} onChange={handleInputChange} type="file" className="hidden" multiple />
               <Button onClick={handleBrowse} className="bg-blue-600 hover:bg-blue-700">
                 <Upload className="w-4 h-4 mr-2" />
-                Browse Files
+                {t('documents.upload.browseButton')}
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-4">Supported formats: PDF, JPG, PNG, DOC (Max 10MB)</p>
+            <p className="text-xs text-gray-500 mt-4">{t('documents.upload.supported')}</p>
           </div>
         </CardContent>
       </Card>
@@ -172,7 +174,7 @@ export function DocumentsScreen() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search documents by name, patient, or category..."
+              placeholder={t('documents.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -183,15 +185,15 @@ export function DocumentsScreen() {
 
       {/* Documents View */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Documents ({filteredDocuments.length})</CardTitle>
-          <CardDescription>Manage and organize patient files</CardDescription>
+          <CardHeader>
+          <CardTitle>{t('documents.allTitle', { count: filteredDocuments.length })}</CardTitle>
+          <CardDescription>{t('documents.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="grid" className="w-full">
             <TabsList className="mb-6">
-              <TabsTrigger value="grid">Grid View</TabsTrigger>
-              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="grid">{t('documents.tabs.grid')}</TabsTrigger>
+              <TabsTrigger value="list">{t('documents.tabs.list')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="grid">
@@ -205,7 +207,7 @@ export function DocumentsScreen() {
                         </div>
                         <h4 className="font-medium text-sm text-gray-900 mb-1 line-clamp-2">{doc.filename}</h4>
                         <p className="text-xs text-gray-600 mb-2">{doc.patient?.name || ''}</p>
-                        <p className="text-xs text-gray-500">Uploaded by {doc.uploader?.name || '—'}</p>
+                        <p className="text-xs text-gray-500">{t('documents.card.uploadedBy', { name: doc.uploader?.name || '—' })}</p>
                         <p className="text-xs text-gray-500">{doc.createdAt ? new Date(doc.createdAt).toLocaleString() : ''}</p>
 
                         <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -238,7 +240,7 @@ export function DocumentsScreen() {
                           <p className="text-sm text-gray-600">{doc.patient?.name || ''}</p>
                         </div>
                       </div>
-                      <div className="text-right mr-6">
+                        <div className="text-right mr-6">
                         <p className="text-sm text-gray-600">{doc.uploader?.name || ''}</p>
                         <p className="text-xs text-gray-500">{doc.createdAt ? new Date(doc.createdAt).toLocaleString() : ''}</p>
                       </div>
