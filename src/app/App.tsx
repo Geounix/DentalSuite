@@ -1,28 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import api from './lib/axios';
 
-import { LoginScreen } from './components/LoginScreen';
-import { DashboardScreen } from './components/DashboardScreen';
-import { UserManagementScreen } from './components/UserManagementScreen';
-import { PatientsScreen } from './components/PatientsScreen';
-import { AppointmentsScreen } from './components/AppointmentsScreen';
-import { PaymentsScreen } from './components/PaymentsScreen';
-import { InsuranceScreen } from './components/InsuranceScreen';
-import { ReportsScreen } from './components/ReportsScreen';
-import { DocumentsScreen } from './components/DocumentsScreen';
-import { ConsentFormsScreen } from './components/ConsentFormsScreen';
+// ── Lazy-loaded screens ──────────────────────────────────────────────────────
+// Each screen is loaded only when the user navigates to it, reducing the
+// initial bundle size significantly.
+const LoginScreen = lazy(() => import('./components/LoginScreen').then(m => ({ default: m.LoginScreen })));
+const DashboardScreen = lazy(() => import('./components/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
+const UserManagementScreen = lazy(() => import('./components/UserManagementScreen').then(m => ({ default: m.UserManagementScreen })));
+const PatientsScreen = lazy(() => import('./components/PatientsScreen').then(m => ({ default: m.PatientsScreen })));
+const AppointmentsScreen = lazy(() => import('./components/AppointmentsScreen').then(m => ({ default: m.AppointmentsScreen })));
+const PaymentsScreen = lazy(() => import('./components/PaymentsScreen').then(m => ({ default: m.PaymentsScreen })));
+const InsuranceScreen = lazy(() => import('./components/InsuranceScreen').then(m => ({ default: m.InsuranceScreen })));
+const ReportsScreen = lazy(() => import('./components/ReportsScreen').then(m => ({ default: m.ReportsScreen })));
+const DocumentsScreen = lazy(() => import('./components/DocumentsScreen').then(m => ({ default: m.DocumentsScreen })));
+const ConsentFormsScreen = lazy(() => import('./components/ConsentFormsScreen').then(m => ({ default: m.ConsentFormsScreen })));
+// ────────────────────────────────────────────────────────────────────────────
 
-import { 
+import {
   Activity,
-  LayoutDashboard, 
-  Users, 
-  UserCog, 
-  Calendar, 
-  DollarSign, 
-  Shield, 
-  FileText, 
-  FileCheck, 
+  LayoutDashboard,
+  Users,
+  UserCog,
+  Calendar,
+  DollarSign,
+  Shield,
+  FileText,
+  FileCheck,
   BarChart3,
   Menu,
   X,
@@ -30,22 +35,23 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from './components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './components/ui/dropdown-menu';
 import { getAppointments, getPatients } from './lib/api';
 
-type Screen = 
-  | 'dashboard' 
-  | 'users' 
-  | 'patients' 
-  | 'appointments' 
-  | 'payments' 
-  | 'insurance' 
-  | 'documents' 
-  | 'consent-forms' 
+type Screen =
+  | 'dashboard'
+  | 'users'
+  | 'patients'
+  | 'appointments'
+  | 'payments'
+  | 'insurance'
+  | 'documents'
+  | 'consent-forms'
   | 'reports';
 
 const navigationItems = [
@@ -60,24 +66,41 @@ const navigationItems = [
   { id: 'users' as Screen, labelKey: 'nav.userManagement', icon: UserCog },
 ];
 
-function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any, setIsLoggedIn: any }) {
+/** Full-page loading spinner shown while a lazy-loaded screen chunk fetches. */
+function ScreenLoader() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    </div>
+  );
+}
+
+function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any; setIsLoggedIn: any }) {
   const { t, i18n } = useTranslation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const initials = user?.name
-    ? user.name.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()
+    ? user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
     : 'U';
+
+  const handleLogout = async () => {
+    try { await api.post('/api/auth/logout'); } catch { /* ignore network errors */ }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsLoggedIn(false);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`
-          ${isSidebarCollapsed ? 'w-20' : 'w-64'} 
-          bg-white border-r border-gray-200 
-          transition-all duration-300 
+          ${isSidebarCollapsed ? 'w-20' : 'w-64'}
+          bg-white border-r border-gray-200
+          transition-all duration-300
           flex flex-col
           fixed lg:static inset-y-0 left-0 z-50
           ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -101,8 +124,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
               <Activity className="w-6 h-6 text-white" />
             </div>
           )}
-          {/* Mobile close button */}
-          <button 
+          <button
             className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
             onClick={() => setIsMobileSidebarOpen(false)}
           >
@@ -141,7 +163,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
-                {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : (
+            {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : (
               <>
                 <ChevronLeft className="w-5 h-5" />
                 <span className="text-sm">{t('collapse')}</span>
@@ -153,7 +175,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
 
       {/* Mobile Sidebar Overlay */}
       {isMobileSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
@@ -164,14 +186,12 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
         {/* Top Bar */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-4">
-            {/* Mobile Menu Button */}
-            <button 
+            <button
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               onClick={() => setIsMobileSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </button>
-            
             <div className="hidden md:block">
               <p className="text-sm text-gray-600">{t('welcome.back')}</p>
               <p className="font-semibold text-gray-900">{user?.name ?? t('user.anon')}</p>
@@ -235,12 +255,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
                   {t('user.settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('user');
-                  setUser(null);
-                  setIsLoggedIn(false);
-                }}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   {t('user.logout')}
                 </DropdownMenuItem>
@@ -252,19 +267,21 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any, setUser: any,
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">
           <div className="max-w-[1600px] mx-auto">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardScreen onNavigate={(screen: string) => navigate(`/${screen}`)} />} />
-              <Route path="/users" element={<UserManagementScreen />} />
-              <Route path="/patients" element={<PatientsScreen />} />
-              <Route path="/appointments" element={<AppointmentsScreen />} />
-              <Route path="/payments" element={<PaymentsScreen />} />
-              <Route path="/insurance" element={<InsuranceScreen />} />
-              <Route path="/documents" element={<DocumentsScreen />} />
-              <Route path="/consent-forms" element={<ConsentFormsScreen />} />
-              <Route path="/reports" element={<ReportsScreen />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <Suspense fallback={<ScreenLoader />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardScreen onNavigate={(screen: string) => navigate(`/${screen}`)} />} />
+                <Route path="/users" element={<UserManagementScreen />} />
+                <Route path="/patients" element={<PatientsScreen />} />
+                <Route path="/appointments" element={<AppointmentsScreen />} />
+                <Route path="/payments" element={<PaymentsScreen />} />
+                <Route path="/insurance" element={<InsuranceScreen />} />
+                <Route path="/documents" element={<DocumentsScreen />} />
+                <Route path="/consent-forms" element={<ConsentFormsScreen />} />
+                <Route path="/reports" element={<ReportsScreen />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
@@ -358,12 +375,17 @@ export default function App() {
   });
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={(u, t) => {
-      localStorage.setItem('token', t);
-      localStorage.setItem('user', JSON.stringify(u));
-      setUser(u);
-      setIsLoggedIn(true);
-    }} />;
+    return (
+      <Suspense fallback={<ScreenLoader />}>
+        <LoginScreen onLogin={(u: any, t: string) => {
+          // Store token for Axios interceptor and user for display only
+          localStorage.setItem('token', t);
+          localStorage.setItem('user', JSON.stringify(u));
+          setUser(u);
+          setIsLoggedIn(true);
+        }} />
+      </Suspense>
+    );
   }
 
   return <AppContent user={user} setUser={setUser} setIsLoggedIn={setIsLoggedIn} />;

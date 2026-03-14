@@ -21,18 +21,22 @@ model User {
 model Patient {
   id                Int               @id @default(autoincrement())
   name              String
-  nationalId        String? 
+  nationalId        String?
   email             String?
   phone             String?
   dateOfBirth       DateTime?
   address           String?
   insuranceProvider String?
   createdAt         DateTime          @default(now())
+  deletedAt         DateTime?
   appointments      Appointment[]
   payments          Payment[]
   dentalProcedures  DentalProcedure[]
   documents         Document[]
   consents          Consent[]
+
+  @@index([deletedAt])
+  @@index([name])
 }
 
 model Appointment {
@@ -46,6 +50,12 @@ model Appointment {
   status      String   @default("scheduled")
   notes       String?
   createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  @@index([patientId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([deletedAt])
 }
 
 model Payment {
@@ -61,18 +71,25 @@ model Payment {
   paymentMethod     String?
   transactionId     String?
   createdAt         DateTime @default(now())
+  deletedAt         DateTime?
   transactions      PaymentTransaction[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([deletedAt])
 }
 
 model PaymentTransaction {
-  id           Int      @id @default(autoincrement())
-  payment      Payment  @relation(fields: [paymentId], references: [id])
-  paymentId    Int
-  amount       Float
-  method       String?
+  id            Int      @id @default(autoincrement())
+  payment       Payment  @relation(fields: [paymentId], references: [id])
+  paymentId     Int
+  amount        Float
+  method        String?
   transactionId String?
-  notes        String?
-  createdAt    DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([paymentId])
 }
 
 model DentalProcedure {
@@ -88,6 +105,11 @@ model DentalProcedure {
   date        DateTime?
   notes       String?
   createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  @@index([patientId])
+  @@index([status])
+  @@index([deletedAt])
 }
 
 model Insurance {
@@ -113,6 +135,9 @@ model Document {
   metadata   Json?
   createdAt  DateTime  @default(now())
   consents   Consent[]
+
+  @@index([patientId])
+  @@index([type])
 }
 
 model Consent {
@@ -126,6 +151,10 @@ model Consent {
   document   Document? @relation(fields: [documentId], references: [id])
   documentId Int?
   createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  @@index([patientId])
+  @@index([deletedAt])
 }
 
 model InsurancePlan {
@@ -136,6 +165,8 @@ model InsurancePlan {
   type        String?
   procedures  InsuranceProcedure[]
   createdAt   DateTime            @default(now())
+
+  @@index([insuranceId])
 }
 
 model InsuranceProcedure {
@@ -146,4 +177,6 @@ model InsuranceProcedure {
   coverageAmount Float?
   copayPercent   Int?
   createdAt      DateTime      @default(now())
+
+  @@index([planId])
 }

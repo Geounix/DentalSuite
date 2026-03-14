@@ -1,154 +1,107 @@
 import { Router } from 'express';
 import prisma from '../prisma';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
+import { asyncHandler } from '../middleware/errorHandler';
 import { createInsuranceSchema, updateInsuranceSchema } from './schemas/insurance';
 
 const router = Router();
 router.use(requireAuth);
 
-const isAdmin = (req: any) => req.user && req.user.role === 'admin';
+router.get('/', asyncHandler(async (_req, res) => {
+  const ins = await prisma.insurance.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { plans: { include: { procedures: true } } },
+  });
+  res.json({ insurances: ins });
+}));
 
-router.get('/', async (req, res) => {
-  try {
-    const ins = await prisma.insurance.findMany({ orderBy: { createdAt: 'desc' }, include: { plans: { include: { procedures: true } } } });
-    res.json({ insurances: ins });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.get('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const ins = await prisma.insurance.findUnique({
+    where: { id },
+    include: { plans: { include: { procedures: true } } },
+  });
+  if (!ins) return res.status(404).json({ error: 'Insurance not found' });
+  res.json({ insurance: ins });
+}));
 
-router.get('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const ins = await prisma.insurance.findUnique({ where: { id }, include: { plans: { include: { procedures: true } } } });
-    if (!ins) return res.status(404).json({ error: 'Not found' });
-    res.json({ insurance: ins });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// ── Insurance CRUD (admin only) ─────────────────────────────────────────────
+router.post('/', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const parsed = createInsuranceSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors });
+  const ins = await prisma.insurance.create({ data: parsed.data });
+  res.status(201).json({ insurance: ins });
+}));
 
-// Plans: create/list under an insurance
-router.post('/:id/plans', async (req, res) => {
-  try {
-    const insuranceId = Number(req.params.id);
-    const { planName, type } = req.body;
-    if (!planName) return res.status(400).json({ error: 'planName required' });
-    const plan = await prisma.insurancePlan.create({ data: { planName, type, insuranceId } });
-    res.status(201).json({ plan });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.put('/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = updateInsuranceSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors });
+  const ins = await prisma.insurance.update({ where: { id }, data: parsed.data });
+  res.json({ insurance: ins });
+}));
 
-router.get('/:id/plans', async (req, res) => {
-  try {
-    const insuranceId = Number(req.params.id);
-    const plans = await prisma.insurancePlan.findMany({ where: { insuranceId }, include: { procedures: true }, orderBy: { createdAt: 'desc' } });
-    res.json({ plans });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.delete('/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  await prisma.insurance.delete({ where: { id } });
+  res.status(204).send();
+}));
 
-// Update / delete plan
-router.put('/plans/:planId', async (req, res) => {
-  try {
-    const id = Number(req.params.planId);
-    const { planName, type } = req.body;
-    const plan = await prisma.insurancePlan.update({ where: { id }, data: { planName, type } });
-    res.json({ plan });
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// ── Plans ────────────────────────────────────────────────────────────────────
+router.get('/:id/plans', asyncHandler(async (req, res) => {
+  const insuranceId = Number(req.params.id);
+  const plans = await prisma.insurancePlan.findMany({
+    where: { insuranceId },
+    include: { procedures: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ plans });
+}));
 
-router.delete('/plans/:planId', async (req, res) => {
-  try {
-    const id = Number(req.params.planId);
-    // delete associated procedures first
-    await prisma.insuranceProcedure.deleteMany({ where: { planId: id } });
-    await prisma.insurancePlan.delete({ where: { id } });
-    res.status(204).send();
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.post('/:id/plans', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const insuranceId = Number(req.params.id);
+  const { planName, type } = req.body;
+  if (!planName) return res.status(400).json({ error: 'planName is required' });
+  const plan = await prisma.insurancePlan.create({ data: { planName, type, insuranceId } });
+  res.status(201).json({ plan });
+}));
 
-// Procedures under plan
-router.post('/plans/:planId/procedures', async (req, res) => {
-  try {
-    const planId = Number(req.params.planId);
-    const { name, coverageAmount, copayPercent } = req.body;
-    if (!name) return res.status(400).json({ error: 'name required' });
-    const proc = await prisma.insuranceProcedure.create({ data: { name, coverageAmount: coverageAmount ?? undefined, copayPercent: copayPercent ?? undefined, planId } });
-    res.status(201).json({ procedure: proc });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.put('/plans/:planId', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.planId);
+  const { planName, type } = req.body;
+  const plan = await prisma.insurancePlan.update({ where: { id }, data: { planName, type } });
+  res.json({ plan });
+}));
 
-router.put('/procedures/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { name, coverageAmount, copayPercent } = req.body;
-    const proc = await prisma.insuranceProcedure.update({ where: { id }, data: { name, coverageAmount, copayPercent } });
-    res.json({ procedure: proc });
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.delete('/plans/:planId', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.planId);
+  await prisma.insuranceProcedure.deleteMany({ where: { planId: id } });
+  await prisma.insurancePlan.delete({ where: { id } });
+  res.status(204).send();
+}));
 
-router.delete('/procedures/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    await prisma.insuranceProcedure.delete({ where: { id } });
-    res.status(204).send();
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// ── Plan Procedures ──────────────────────────────────────────────────────────
+router.post('/plans/:planId/procedures', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const planId = Number(req.params.planId);
+  const { name, coverageAmount, copayPercent } = req.body;
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const proc = await prisma.insuranceProcedure.create({
+    data: { name, coverageAmount, copayPercent, planId },
+  });
+  res.status(201).json({ procedure: proc });
+}));
 
-router.post('/', async (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
-    const parsed = createInsuranceSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors });
-    const ins = await prisma.insurance.create({ data: parsed.data });
-    res.status(201).json({ insurance: ins });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.put('/procedures/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const { name, coverageAmount, copayPercent } = req.body;
+  const proc = await prisma.insuranceProcedure.update({ where: { id }, data: { name, coverageAmount, copayPercent } });
+  res.json({ procedure: proc });
+}));
 
-router.put('/:id', async (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
-    const id = Number(req.params.id);
-    const parsed = updateInsuranceSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.errors });
-    const ins = await prisma.insurance.update({ where: { id }, data: parsed.data });
-    res.json({ insurance: ins });
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.delete('/:id', async (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
-    const id = Number(req.params.id);
-    await prisma.insurance.delete({ where: { id } });
-    res.status(204).send();
-  } catch (err: any) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Not found' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.delete('/procedures/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  await prisma.insuranceProcedure.delete({ where: { id } });
+  res.status(204).send();
+}));
 
 export default router;
