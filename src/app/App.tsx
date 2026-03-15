@@ -16,6 +16,7 @@ const InsuranceScreen = lazy(() => import('./components/InsuranceScreen').then(m
 const ReportsScreen = lazy(() => import('./components/ReportsScreen').then(m => ({ default: m.ReportsScreen })));
 const DocumentsScreen = lazy(() => import('./components/DocumentsScreen').then(m => ({ default: m.DocumentsScreen })));
 const ConsentFormsScreen = lazy(() => import('./components/ConsentFormsScreen').then(m => ({ default: m.ConsentFormsScreen })));
+const CatalogScreen = lazy(() => import('./components/CatalogScreen').then(m => ({ default: m.CatalogScreen })));
 // ────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -52,7 +53,8 @@ type Screen =
   | 'insurance'
   | 'documents'
   | 'consent-forms'
-  | 'reports';
+  | 'reports'
+  | 'catalog';
 
 const navigationItems = [
   { id: 'dashboard' as Screen, labelKey: 'nav.dashboard', icon: LayoutDashboard },
@@ -63,6 +65,7 @@ const navigationItems = [
   { id: 'documents' as Screen, labelKey: 'nav.documents', icon: FileText },
   { id: 'consent-forms' as Screen, labelKey: 'nav.consentForms', icon: FileCheck },
   { id: 'reports' as Screen, labelKey: 'nav.reports', icon: BarChart3 },
+  { id: 'catalog' as Screen, labelKey: 'nav.catalog', icon: Settings },
   { id: 'users' as Screen, labelKey: 'nav.userManagement', icon: UserCog },
 ];
 
@@ -279,6 +282,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
                 <Route path="/documents" element={<DocumentsScreen />} />
                 <Route path="/consent-forms" element={<ConsentFormsScreen />} />
                 <Route path="/reports" element={<ReportsScreen />} />
+                <Route path="/catalog" element={<CatalogScreen />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Suspense>

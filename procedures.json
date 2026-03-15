@@ -1,0 +1,906 @@
+﻿[
+    {
+        "Procedimientos":  "ACTIVADOR ABIERTO ELASTICO-KLAMMT",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "AJUSTE DE MORDIDA ",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "AJUSTE OCLUSAL",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "ALARGAMIENTO CORONARIO",
+        "Precios":  "6000"
+    },
+    {
+        "Procedimientos":  "APEXIFICACION CON MTA ENDODONCIA INCLUIDA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "APLICACIÓN DE BARNIZ DE FLUOR ",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "APLICACION DE FLUOR",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "ARCO LINGUAL SOLO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "BIOPSIAS",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "BLANQUEAMIENTO EXTERNO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "BLANQUEAMIENTO INTERNO",
+        "Precios":  "8000"
+    },
+    {
+        "Procedimientos":  "BOTONES LINGUALES ",
+        "Precios":  "800"
+    },
+    {
+        "Procedimientos":  "BOTON DE NANCE SOLO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "CAJITAS PARA REMOVIBLES",
+        "Precios":  "250"
+    },
+    {
+        "Procedimientos":  "CANINO RETENIDO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "CARILLA CEROMERO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "CARILLA CERAMAGE",
+        "Precios":  "14000"
+    },
+    {
+        "Procedimientos":  "CARILLA DE PORCELANA",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "CARILLA DIRECTA RESINA",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "CARILLAS E-MAX",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "CARILLAS DISILICATO DE LITIO",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "CARILLAS PROVISIONALES",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "CEMENTACION RETENEDOR",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "CEMENTACION CORONA",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "CICATRIZADOR",
+        "Precios":  "1300"
+    },
+    {
+        "Procedimientos":  "CIERRE CON MTA",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "CIERRE DE DIASTEMA",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "CIRUGIA APICAL",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "CIRUGIA ENDODONTICA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CIRUGIA MUCOGINGIVAL",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "CIRUGIA PERIODONTAL P/C",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CIRUGIA PERIODONTAL P/CUADRANTE",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CIRUGIA PERIODONTAL REGENERATIVA (SBM)",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CLASE I RESINA",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "CLASE II RESINA",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "CLASE III RESINA",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "CLASE IV RESINA",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "CLASE V",
+        "Precios":  "3000"
+    },
+    {
+        "Procedimientos":  "COFFIN",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "COLGAJO DE ACCESO (CUADRANTE)",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "CONSULTA DE PRIMERA VEZ",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "CONSULTA ESPECIALIZADA EN ORTODONCIA",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "CONSULTA ESPECIALIZADA PERIODONCIA ",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "CONSULTA PEDIATRICA",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "CONSULTA ESPECIALIZADA ENDODONCIA",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "CONSULTA CONTROL",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "CONTROL EXPANSOR",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CONTROL ORTODONCIA METÁLICO ",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "CONTROL ORTODONCIA ESTÉTICO",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "CONTROL PERIODONTAL",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "CORONA DE ACRILICOS HERVIDOS",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CORONA E-MAX",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "CORONA EN CEROMERO",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "CORONA EN CIRCONIA",
+        "Precios":  "44000"
+    },
+    {
+        "Procedimientos":  "CORONA METAL CERAMICA",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "CORONA SOBRE IMPLANTE (PORC.)",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "CORONA SOBRE IMPLANTES",
+        "Precios":  "44000"
+    },
+    {
+        "Procedimientos":  "CORONAS ACRILICAS",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "CORONAS PMMA",
+        "Precios":  "8000"
+    },
+    {
+        "Procedimientos":  "CORONAS ORO",
+        "Precios":  "45000"
+    },
+    {
+        "Procedimientos":  "CORONAS DISILICATO DE LITIO",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "CUBETA BLANQUEAMIENTO EN CASA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "CURA ANALGÉSICA",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "CURSOS ULTIMO AVANCES EN ODONTOLOGIA ESTETICA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "DENTALASTIC",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "DENTINOPLASTIA",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "DESOBTURACIÓN DE CONDUCTO",
+        "Precios":  "7000"
+    },
+    {
+        "Procedimientos":  "DEST. PROFUNDO - SUBGINGIVAL X CUADRANTE ",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "DESTARTRAJE SIMPLE X CUADRANTE ",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "DRENAJES DE ABSCESO",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "EDUCADORES LINGUALES ",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "ELEVACIÓN DE MORDIDA",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "ELEVACION DE SENO MAXILAR",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "EMERGENCIA",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "ENCERADO DIAGNOSTICO (PIEZA)",
+        "Precios":  "450"
+    },
+    {
+        "Procedimientos":  "ENCUBRIMIENTO PULPAR INDIRECTO",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "ENDODONCIA  ANTERIOR",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "ENDODONCIA  PREMOLAR",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "ENDODONCIA MOLAR",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "EVALUACION FUNCIONAL",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "ESCANER DIGITAL",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "EXODONCIA 3ER MOLAR",
+        "Precios":  "7500"
+    },
+    {
+        "Procedimientos":  "EXODONCIA COLGAJO",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "EXODONCIA DE CUERPO EXTRAÑO",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "EXODONCIA SIMPLE",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "EXODONCIA TEMPORARIO",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "EXODONCIAS TERCEROS MOLARES, DTES RETENIDOS/SUPERN",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "EXPANSOR HYRAX",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "EXPANSON MCNAMARA ",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "EXTIRPACION DE CRECIMIENTOS OSEOS Y MUCOSOS",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "EXTIRPACION DE QUISTES",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "EXTIRPACION DE TORUS",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "EXTRACCION TERCER MOLAR EN SENO MAXILAR C/U",
+        "Precios":  "6200"
+    },
+    {
+        "Procedimientos":  "FERULA PERIODONTAL",
+        "Precios":  "3000"
+    },
+    {
+        "Procedimientos":  "FIBROMA POR IRRITACION",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "FISTULECTOMIA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "FRACTURAS",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "FRENECTOMIA LABIAL",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "FRENECTOMIA LINGUAL",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "FRENTE ESTETICO",
+        "Precios":  "24000"
+    },
+    {
+        "Procedimientos":  "GINGIVECTOMIA",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "GINGIVECTOMIA POR CUADRANTE",
+        "Precios":  "6000"
+    },
+    {
+        "Procedimientos":  "GINGIVECTOMIA POR DIENTE",
+        "Precios":  "2500"
+    },
+    {
+        "Procedimientos":  "GINGIVOPLASTIA",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "GINGIVOPLASTIA POR DIENTE",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "GUIA QUIRURGICA",
+        "Precios":  "1800"
+    },
+    {
+        "Procedimientos":  "IMPLANTE",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "INCRUSTACION  EN CERAMICA",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "INCRUSTACION EN CEROMERO",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "INJERTO DE HUESO EN BLOQUE",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "INJERTO DE HUESO TRITURADO",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "INJERTO DE TEJIDO CONECTIVO ",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "INJERTO ÓSEO ",
+        "Precios":  "18000"
+    },
+    {
+        "Procedimientos":  "JORNADAS SOCIALES EN EL GRAN SANTO DOMINGO",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "JORNADAS SOCIALES INTERIOR DEL PAÍS ",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "KIT DESECHABLE",
+        "Precios":  "750"
+    },
+    {
+        "Procedimientos":  "LEVANTE  DE MORDIDA ",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "MANEJO PEDIATRICO",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "MANTENEDOR DE ESPACIO BILATERAL",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "MANTENEDOR DE ESPACIO UNILATERAL",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "MANTENEDORES DE ESPACIO",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "MARYLAND CEROMERO",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "MEMBRANA COLAGENO",
+        "Precios":  "8000"
+    },
+    {
+        "Procedimientos":  "MEMBRANA PLASMA",
+        "Precios":  "6000"
+    },
+    {
+        "Procedimientos":  "MINI IMPLANTE ORTODONTICO EXTRA ALVEOLAR",
+        "Precios":  "10500"
+    },
+    {
+        "Procedimientos":  "MINI IMPLANTE ORTODONTICO INTERRADICULAR",
+        "Precios":  "10500"
+    },
+    {
+        "Procedimientos":  "MOCKUP (UNIDAD)",
+        "Precios":  "800"
+    },
+    {
+        "Procedimientos":  "MOD RESINA",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "MODELO DE ESTUDIO",
+        "Precios":  "600"
+    },
+    {
+        "Procedimientos":  "MODELOS DE ESTUDIO DIGITAL",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "MUÑON SOBRE IMPLANTE",
+        "Precios":  "7000"
+    },
+    {
+        "Procedimientos":  "ORTODONCIA INTERCEPTIVA",
+        "Precios":  "35000"
+    },
+    {
+        "Procedimientos":  "ORTODONCIA LINGUAL",
+        "Precios":  "90000"
+    },
+    {
+        "Procedimientos":  "PARCIAL DE ACRILICO",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "PERLA LINGUAL (APARATO)",
+        "Precios":  "11000"
+    },
+    {
+        "Procedimientos":  "PENDEX",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PENDULO",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PERNO COLADO",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "PERNO DE FIBRA DE VIDRIO",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "PLACA CUAL",
+        "Precios":  "17500"
+    },
+    {
+        "Procedimientos":  "PLACA  MIORRELAJANTE  DURA",
+        "Precios":  "7000"
+    },
+    {
+        "Procedimientos":  "T-BRUX",
+        "Precios":  "12000"
+    },
+    {
+        "Procedimientos":  "PLACA MIORRELAJANTE BLANDA",
+        "Precios":  "6000"
+    },
+    {
+        "Procedimientos":  "PLANO DE MORDIDA",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "PROPULSOR ",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "PREPARACION QUIRURGICA PRE PROTESICA DE MAXILARES",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROFILAXIS",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "PROTESIS FLEXIBLE UNI LATERAL",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL ACRILICA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL FIJA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL MOVIBLE",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL REMOVIBLES NIÑOS \u003c 5 AÑOS 1-5 DTE",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS PARCIAL REMOVIBLES NIÑOS \u003c 5 AÑOS 6+ DTES",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS REMOVIBLE",
+        "Precios":  "30000"
+    },
+    {
+        "Procedimientos":  "PROTESIS SOBRE IMPLANTE",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PROTESIS TOTAL",
+        "Precios":  "35000"
+    },
+    {
+        "Procedimientos":  "PROTESIS TOTAL CARACTERIZADA SUP/INF",
+        "Precios":  "40000"
+    },
+    {
+        "Procedimientos":  "PROTESIS TOTAL HÍBRIDA ",
+        "Precios":  "150000"
+    },
+    {
+        "Procedimientos":  "PROVISIONALES",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "PUENTE MARYLAND PORCELANA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PUENTES MARYLAND",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PUENTES REMOBIBLES",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PULIDO DE SUPERFICIES ",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "PULPECTOMIA EN DIENTES UNI Y MULTIRRADICULARES",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "PULPOTOMIA",
+        "Precios":  "4500"
+    },
+    {
+        "Procedimientos":  "QUEILO PLASTIA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "RASPAJE Y ALISADO POR CUADRANTE",
+        "Precios":  "7000"
+    },
+    {
+        "Procedimientos":  "REAPERTURA ",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "REBASADO DE PROTESIS",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "REBASADO PROVISIONAL",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "RE-CEMENTACION BRACKET",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "RE-COLOCACION BRACKET",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "RECONSTRUCCION BORDE INCISAL",
+        "Precios":  "3000"
+    },
+    {
+        "Procedimientos":  "RECUBRIMIENTO PULPAR DIRECTO",
+        "Precios":  "1500"
+    },
+    {
+        "Procedimientos":  "REGENERACION OSEA",
+        "Precios":  "11000"
+    },
+    {
+        "Procedimientos":  "REJILLA CON MECANISMO DE EXPANSION",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "REJILLA PALATINA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "REJILLA QUITA HABITO CON BANDAS Y TUBOS SOLDADA",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "REIMPLANTACION INTENCIONAL",
+        "Precios":  "18000"
+    },
+    {
+        "Procedimientos":  "REPOSICION BRACKET",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "REPOSICION BRACKETS ESTETICOS",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "REPOSICION TUBO ESTANDAR",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "RESTAURACION ATIPICA DE 1 A 2 CUSPIDES",
+        "Precios":  "4000"
+    },
+    {
+        "Procedimientos":  "RESTAURACION IONOMERO",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "RETENEDOR ESTETICO",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "RETENEDOR FIJO",
+        "Precios":  "10000"
+    },
+    {
+        "Procedimientos":  "RETENEDOR HAWLEY",
+        "Precios":  "10500"
+    },
+    {
+        "Procedimientos":  "RETRATAMIENTO ENDODONTICO ANTERIOR",
+        "Precios":  "11000"
+    },
+    {
+        "Procedimientos":  "RETRATAMIENTO ENDODONTICO PREMOLAR ",
+        "Precios":  "13000"
+    },
+    {
+        "Procedimientos":  "RETRATAMIENTO ENDODONTICO MOLAR",
+        "Precios":  "16000"
+    },
+    {
+        "Procedimientos":  "RX LATERAL DE CRANEO",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "RX PANORAMICA",
+        "Precios":  "1000"
+    },
+    {
+        "Procedimientos":  "RX PERIAPICAL",
+        "Precios":  "250"
+    },
+    {
+        "Procedimientos":  "SEDACION",
+        "Precios":  "25000"
+    },
+    {
+        "Procedimientos":  "SELLANTE FOSAS Y FISURAS",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "SISTEMA MIOFUNCIONAL MYOBRACE",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "TERAPIA BASICA",
+        "Precios":  "5000"
+    },
+    {
+        "Procedimientos":  "TORNILLO DE FIJACION OSEA",
+        "Precios":  "3500"
+    },
+    {
+        "Procedimientos":  "TORNILLO DE REFUERZO PRÓTESIS ",
+        "Precios":  "2000"
+    },
+    {
+        "Procedimientos":  "TRATAMIENTO ORTODONTICO AUTOLIGABLE",
+        "Precios":  "150000"
+    },
+    {
+        "Procedimientos":  "TRATAMIENTO ORTODONTICO CONVENCIONAL",
+        "Precios":  "90000"
+    },
+    {
+        "Procedimientos":  "TRATAMIENTO ORTODONTICO ESTETICO",
+        "Precios":  "120000"
+    },
+    {
+        "Procedimientos":  "TRATAMIENTO ORTODONTICO INVISALIGN ",
+        "Precios":  "190000"
+    },
+    {
+        "Procedimientos":  "VALPLAST MAS DE 6 ELEMENTOS",
+        "Precios":  "20000"
+    },
+    {
+        "Procedimientos":  "VALPLAST MENOS DE 6 ELEMENTOS",
+        "Precios":  "15000"
+    },
+    {
+        "Procedimientos":  "",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "ARMONIZACIÓN ",
+        "Precios":  ""
+    },
+    {
+        "Procedimientos":  "BOTOX",
+        "Precios":  "350 USD"
+    },
+    {
+        "Procedimientos":  "SURCOS NASOGENIANOS",
+        "Precios":  "350 USD x ML"
+    },
+    {
+        "Procedimientos":  "RELLENO DE OJERAS",
+        "Precios":  "350 USD"
+    },
+    {
+        "Procedimientos":  "ESCULTURA LABIAL",
+        "Precios":  "400 USD"
+    },
+    {
+        "Procedimientos":  "RINOMODELACIÓN ",
+        "Precios":  "400 USD"
+    },
+    {
+        "Procedimientos":  "PROYECCIÓN DE MENTÓN ",
+        "Precios":  "350 USD x ML"
+    },
+    {
+        "Procedimientos":  "JAWLINE CON A.H (10ML)",
+        "Precios":  "2000 USD"
+    },
+    {
+        "Procedimientos":  "JAW LINE CON HILOS PDO",
+        "Precios":  "900 USD"
+    },
+    {
+        "Procedimientos":  "LINEAS DE MARIONETA",
+        "Precios":  "350 USD x ML"
+    },
+    {
+        "Procedimientos":  "FULL FACE HILOS PDO",
+        "Precios":  "1800 USD"
+    },
+    {
+        "Procedimientos":  "HILOS LISOS PDO (1O UND)",
+        "Precios":  "250 USD"
+    },
+    {
+        "Procedimientos":  "LIPOPAPADA CON MARCACIÓN MANDIBULAR ",
+        "Precios":  "1600 USD"
+    },
+    {
+        "Procedimientos":  "BICHECTOMIA",
+        "Precios":  "700 USD"
+    },
+    {
+        "Procedimientos":  "BIOESTIMULADOR DE COLÁGENO ",
+        "Precios":  "700 USD"
+    },
+    {
+        "Procedimientos":  "PROFHILO",
+        "Precios":  "300 USD"
+    },
+    {
+        "Procedimientos":  "ALECTOMIA",
+        "Precios":  "1500 USD"
+    },
+    {
+        "Procedimientos":  "",
+        "Precios":  ""
+    }
+]

@@ -8,6 +8,7 @@
     "documents": "Documentos",
     "consentForms": "Formularios de consentimiento",
     "reports": "Reportes",
+    "catalog": "Catálogo",
     "userManagement": "Gestión de usuarios"
   },
   "logo": {
@@ -31,8 +32,7 @@
     "language": "Idioma"
   },
   "viewCalendar": "Ver calendario",
-  "openSchedule": "Abrir agenda completa"
-  ,
+  "openSchedule": "Abrir agenda completa",
   "dashboard": {
     "title": "Tablero",
     "subtitle": "¡Bienvenido de nuevo! Esto es lo que sucede hoy."
@@ -111,8 +111,7 @@
       "avgPerProcedure": "Promedio por procedimiento",
       "percentOfTotal": "% del total"
     }
-  }
- ,
+  },
   "loading": {
     "user": "Cargando usuario..."
   },
@@ -223,8 +222,7 @@
       "addTitle": "Agregar cuota",
       "addDescription": "Agregar una cuota para la factura #{{id}}"
     },
-    "noPatients": "No hay pacientes"
-    ,
+    "noPatients": "No hay pacientes",
     "form": {
       "patient": "Paciente",
       "selectPatient": "Seleccionar paciente",
@@ -298,8 +296,7 @@
         "actions": "Acciones"
       },
       "planCount": "{{count}} planes"
-    }
-    ,
+    },
     "view": {
       "backToPlans": "Volver a planes",
       "addProcedure": "Agregar procedimiento",
@@ -343,7 +340,6 @@
       }
     }
   },
-
   "patients": {
     "title": "Pacientes",
     "subtitle": "Administra los registros e información de los pacientes",
@@ -418,55 +414,53 @@
       }
     }
   },
-
-
-    "odontogram": {
-      "title": "Odontograma",
-      "subtitle": "Gráfico dental interactivo para el paciente: {{patient}}",
-      "legend": {
-        "healthy": "Saludable",
-        "planned": "Planificado",
-        "inProgress": "En progreso",
-        "completed": "Completado"
-      },
-      "chartTitle": "Gráfico dental (Notación FDI)",
-      "chartDescription": "Haz clic en cualquier diente para ver o agregar procedimientos",
-      "upperArch": "Arcada superior",
-      "lowerArch": "Arcada inferior",
-      "toothTitle": "Diente #{{num}}",
-      "toothDescription": "Ver procedimientos y agregar nuevos tratamientos",
-      "procedureHistory": {
-        "title": "Historial de procedimientos"
-      },
-      "labels": {
-        "condition": "Condición",
-        "treatment": "Tratamiento",
-        "doctor": "Doctor",
-        "cost": "Costo ($)",
-        "date": "Fecha",
-        "notes": "Notas",
-        "notesOptional": "Notas (Opcional)",
-        "status": "Estado"
-      },
-      "placeholders": {
-        "notes": "Agregar notas para este procedimiento",
-        "selectCondition": "Seleccionar condición",
-        "selectTreatment": "Seleccionar tratamiento",
-        "additionalNotes": "Notas adicionales sobre el procedimiento..."
-      },
-      "status": {
-        "planned": "Planificado",
-        "inProgress": "En progreso",
-        "completed": "Completado"
-      },
-      "addNew": {
-        "title": "Agregar nuevo procedimiento"
-      },
-      "actions": {
-        "save": "Guardar",
-        "addProcedure": "Agregar procedimiento"
-      }
+  "odontogram": {
+    "title": "Odontograma",
+    "subtitle": "Gráfico dental interactivo para el paciente: {{patient}}",
+    "legend": {
+      "healthy": "Saludable",
+      "planned": "Planificado",
+      "inProgress": "En progreso",
+      "completed": "Completado"
     },
+    "chartTitle": "Gráfico dental (Notación FDI)",
+    "chartDescription": "Haz clic en cualquier diente para ver o agregar procedimientos",
+    "upperArch": "Arcada superior",
+    "lowerArch": "Arcada inferior",
+    "toothTitle": "Diente #{{num}}",
+    "toothDescription": "Ver procedimientos y agregar nuevos tratamientos",
+    "procedureHistory": {
+      "title": "Historial de procedimientos"
+    },
+    "labels": {
+      "condition": "Condición",
+      "treatment": "Tratamiento",
+      "doctor": "Doctor",
+      "cost": "Costo ($)",
+      "date": "Fecha",
+      "notes": "Notas",
+      "notesOptional": "Notas (Opcional)",
+      "status": "Estado"
+    },
+    "placeholders": {
+      "notes": "Agregar notas para este procedimiento",
+      "selectCondition": "Seleccionar condición",
+      "selectTreatment": "Seleccionar tratamiento",
+      "additionalNotes": "Notas adicionales sobre el procedimiento..."
+    },
+    "status": {
+      "planned": "Planificado",
+      "inProgress": "En progreso",
+      "completed": "Completado"
+    },
+    "addNew": {
+      "title": "Agregar nuevo procedimiento"
+    },
+    "actions": {
+      "save": "Guardar",
+      "addProcedure": "Agregar procedimiento"
+    }
+  },
   "common": {
     "close": "Cerrar",
     "view": "Ver",

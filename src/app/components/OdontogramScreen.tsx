@@ -28,7 +28,7 @@ interface ToothData {
 
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure } from '../lib/api';
+import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure, getCatalogProcedures } from '../lib/api';
 
 export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const { t } = useTranslation();
@@ -36,10 +36,26 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const [teethData, setTeethData] = useState<Map<number, ToothData>>(new Map());
   const [patientName, setPatientName] = useState<string | null>(null);
   const [usersList, setUsersList] = useState<any[]>([]);
-  const [treatmentOptions, setTreatmentOptions] = useState<string[]>([]);
-  const [conditionOptions, setConditionOptions] = useState<string[]>([]);
-  const DEFAULT_TREATMENTS = ['Composite Filling','Root Canal Therapy','Crown Placement','Dental Implant','Extraction','Cleaning & Scaling'];
-  const DEFAULT_CONDITIONS = ['Cavity','Root Canal Required','Crown Needed','Missing Tooth','Gum Disease','Fracture'];
+  const [treatmentOptions, setTreatmentOptions] = useState<any[]>([]);
+  // Static options requested by the user
+  const conditionOptions = [
+    'Diente sano', 'Clase I', 'Clase II', 'Clase III', 'Clase IV', 'Clase V',
+    'Caries incipiente', 'Caries moderada', 'Caries profunda', 'Caries recurrente',
+    'Lesión cervical no cariosa', 'Desgaste dental', 'Abrasión dental', 'Atrición dental',
+    'Erosión dental', 'Fractura dental', 'Fisura dental', 'Hipoplasia del esmalte',
+    'Fluorosis dental', 'Manchas dentales', 'Pulpa normal', 'Pulpitis reversible',
+    'Pulpitis irreversible', 'Necrosis pulpar', 'Diente previamente tratado',
+    'Terapia iniciada previamente', 'Tejidos apicales normales', 'Periodontitis apical sintomática',
+    'Periodontitis apical asintomática', 'Absceso apical agudo', 'Absceso apical crónico',
+    'Osteítis condensante', 'Movilidad grado I', 'Movilidad grado II', 'Movilidad grado III',
+    'Furcación grado I', 'Furcación grado II', 'Furcación grado III', 'Recesión gingival',
+    'Bolsa periodontal', 'Sangrado al sondaje', 'Supuración', 'Placa bacteriana',
+    'Cálculo dental', 'Restauración desbordante', 'Contacto abierto', 'Impactación alimentaria',
+    'Diente ectópico', 'Diente supernumerario', 'Microdoncia', 'Macrodoncia',
+    'Amelogénesis imperfecta', 'Dentinogénesis imperfecta', 'Fusión dental', 'Geminación dental',
+    'Taurodontismo', 'Raíz dilacerada', 'Hipercementosis', 'Reabsorción radicular interna',
+    'Reabsorción radicular externa', 'Espacio edéntulo'
+  ];
 
   const [newProcedure, setNewProcedure] = useState<Partial<Procedure>>({
     condition: '',
@@ -56,9 +72,16 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     let mounted = true;
     async function load() {
       try {
-        const [procsRes, usersRes] = await Promise.all([getProcedures(), getUsers()]);
+        const [procsRes, usersRes, catalogRes] = await Promise.all([
+          getProcedures(),
+          getUsers(),
+          getCatalogProcedures({ limit: 2000 }) // Load all to have them available
+        ]);
         const users = usersRes.users || [];
-        if (mounted) setUsersList(users);
+        if (mounted) {
+          setUsersList(users);
+          setTreatmentOptions(catalogRes.catalog || []);
+        }
         // load patient name
         try {
           const p = await getPatient(patientId);
@@ -76,9 +99,9 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
             id: String(p.id),
             condition: p.condition || '',
             treatment: p.treatment || '',
-            status: (p.status || 'planned') === 'planned' ? 'Planned' : (p.status === 'in progress' ? 'In Progress' : (p.status === 'completed' ? 'Completed' : String(p.status))),
+            status: (p.status || 'planned').toLowerCase() === 'planned' ? 'Planned' : (p.status.toLowerCase() === 'in progress' ? 'In Progress' : (p.status.toLowerCase() === 'completed' ? 'Completed' : 'Planned')),
             doctor: doctorName,
-            cost: p.cost ?? 0,
+            cost: p.cost || 0,
             date: p.date ? new Date(p.date).toISOString().split('T')[0] : '',
             notes: p.notes
           };
@@ -89,17 +112,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
         });
 
         if (!mounted) return;
-        // build dynamic treatment/condition options from procedures
-        const treatmentsSet = new Set<string>(DEFAULT_TREATMENTS);
-        const conditionsSet = new Set<string>(DEFAULT_CONDITIONS);
-        procs.forEach((p: any) => {
-          if (p.treatment) treatmentsSet.add(p.treatment);
-          if (p.condition) conditionsSet.add(p.condition);
-        });
-        if (mounted) {
-          setTreatmentOptions(Array.from(treatmentsSet));
-          setConditionOptions(Array.from(conditionsSet));
-        }
+
         // merge with current teethData (replace entries from API)
         const newMap = new Map<number, ToothData>(teethData);
         map.forEach((v, k) => newMap.set(k, v));
@@ -135,11 +148,11 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const getToothStatus = (toothNumber: number): string => {
     const tooth = teethData.get(toothNumber);
     if (!tooth || tooth.procedures.length === 0) return 'healthy';
-    
+
     const hasCompleted = tooth.procedures.some(p => p.status === 'Completed');
     const hasInProgress = tooth.procedures.some(p => p.status === 'In Progress');
     const hasPlanned = tooth.procedures.some(p => p.status === 'Planned');
-    
+
     if (hasInProgress) return 'in-progress';
     if (hasPlanned) return 'planned';
     if (hasCompleted) return 'completed';
@@ -174,7 +187,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     };
 
     const currentTooth = teethData.get(selectedTooth);
-    const updatedTooth: ToothData = currentTooth 
+    const updatedTooth: ToothData = currentTooth
       ? { ...currentTooth, procedures: [...currentTooth.procedures, procedure] }
       : { number: selectedTooth, procedures: [procedure] };
 
@@ -201,9 +214,9 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
           id: String(created.id),
           condition: created.condition || procedure.condition || '',
           treatment: created.treatment || procedure.treatment || '',
-          status: created.status === 'planned' ? 'Planned' : (created.status === 'in progress' ? 'In Progress' : (created.status === 'completed' ? 'Completed' : created.status)),
+          status: created.status === 'planned' ? 'Planned' : (created.status === 'in progress' ? 'In Progress' : (created.status === 'completed' ? 'Completed' : 'Planned')),
           doctor: doctor ? doctor.name : procedure.doctor || 'Unknown',
-          cost: created.cost ?? procedure.cost ?? 0,
+          cost: created.cost || procedure.cost || 0,
           date: created.date ? new Date(created.date).toISOString().split('T')[0] : (procedure.date || ''),
           notes: created.notes || procedure.notes
         };
@@ -234,6 +247,15 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     });
   };
 
+  const handleTreatmentChange = (treatmentName: string) => {
+    const selectedCatalogItem = treatmentOptions.find(t => t.name === treatmentName);
+    setNewProcedure(prev => ({
+      ...prev,
+      treatment: treatmentName,
+      cost: selectedCatalogItem ? selectedCatalogItem.price : prev.cost
+    }));
+  };
+
   const selectedToothData = selectedTooth ? teethData.get(selectedTooth) : undefined;
   const [procEdits, setProcEdits] = useState<Record<string, { status?: string; notes?: string; cost?: number }>>({});
 
@@ -255,11 +277,11 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
         if (idx !== -1) {
           const updatedProc = {
             ...td.procedures[idx],
-            status: updated.status === 'planned' ? 'Planned' : (updated.status === 'in progress' ? 'In Progress' : (updated.status === 'completed' ? 'Completed' : updated.status)),
-            cost: updated.cost ?? td.procedures[idx].cost,
+            status: updated.status === 'planned' ? 'Planned' : (updated.status === 'in progress' ? 'In Progress' : (updated.status === 'completed' ? 'Completed' : 'Planned')),
+            cost: updated.cost !== null && updated.cost !== undefined ? updated.cost : td.procedures[idx].cost,
             notes: updated.notes ?? td.procedures[idx].notes,
             date: updated.date ? new Date(updated.date).toISOString().split('T')[0] : td.procedures[idx].date
-          };
+          } as Procedure;
           const newProcs = [...td.procedures];
           newProcs[idx] = updatedProc;
           newTeeth.set(toothNum, { ...td, procedures: newProcs });
@@ -320,7 +342,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
               <div className="text-center mb-4">
                 <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">{t('odontogram.upperArch')}</span>
               </div>
-              <div className="flex justify-center items-end gap-1 px-4" style={{ 
+              <div className="flex justify-center items-end gap-1 px-4" style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'flex-end',
@@ -332,10 +354,10 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   const angle = ((index - 7.5) / 8) * 30; // Curve effect
                   const yOffset = Math.abs(angle) * 1.5;
                   return (
-                    <div 
+                    <div
                       key={toothNumber}
                       className="flex flex-col items-center cursor-pointer group"
-                      style={{ 
+                      style={{
                         transform: `translateY(${yOffset}px) rotate(${angle}deg)`,
                         transition: 'all 0.2s'
                       }}
@@ -363,7 +385,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
               <div className="text-center mb-4">
                 <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">{t('odontogram.lowerArch')}</span>
               </div>
-              <div className="flex justify-center items-start gap-1 px-4" style={{ 
+              <div className="flex justify-center items-start gap-1 px-4" style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'flex-start',
@@ -375,10 +397,10 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   const angle = ((index - 7.5) / 8) * -30; // Opposite curve
                   const yOffset = Math.abs(angle) * 1.5;
                   return (
-                    <div 
+                    <div
                       key={toothNumber}
                       className="flex flex-col items-center cursor-pointer group"
-                      style={{ 
+                      style={{
                         transform: `translateY(${yOffset}px) rotate(${angle}deg)`,
                         transition: 'all 0.2s'
                       }}
@@ -423,9 +445,9 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   <div className="space-y-4">
                     {selectedToothData.procedures.map((procedure) => (
                       <Card key={procedure.id} className="border-l-4" style={{
-                        borderLeftColor: 
+                        borderLeftColor:
                           procedure.status === 'Completed' ? '#10b981' :
-                          procedure.status === 'In Progress' ? '#3b82f6' : '#f59e0b'
+                            procedure.status === 'In Progress' ? '#3b82f6' : '#f59e0b'
                       }}>
                         <CardContent className="pt-4">
                           <div className="space-y-3">
@@ -513,7 +535,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                         <SelectValue placeholder={t('odontogram.placeholders.selectCondition')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {(conditionOptions.length ? conditionOptions : ["Cavity","Root Canal Required","Crown Needed","Missing Tooth","Gum Disease","Fracture"]).map((c) => (
+                        {conditionOptions.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
@@ -521,13 +543,13 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   </div>
                   <div className="space-y-2">
                     <Label>{t('odontogram.labels.treatment')}</Label>
-                    <Select value={newProcedure.treatment || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, treatment: value })}>
+                    <Select value={newProcedure.treatment || ''} onValueChange={handleTreatmentChange}>
                       <SelectTrigger>
                         <SelectValue placeholder={t('odontogram.placeholders.selectTreatment')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {(treatmentOptions.length ? treatmentOptions : ["Composite Filling","Root Canal Therapy","Crown Placement","Dental Implant","Extraction","Cleaning & Scaling"]).map((t) => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        {treatmentOptions.map((t) => (
+                          <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

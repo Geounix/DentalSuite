@@ -180,3 +180,13 @@ model InsuranceProcedure {
 
   @@index([planId])
 }
+
+model TreatmentCatalog {
+  id        Int       @id @default(autoincrement())
+  name      String
+  price     Float     @default(0)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+}

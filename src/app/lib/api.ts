@@ -274,6 +274,27 @@ export const deleteDocument = async (id: number) => {
   return data;
 };
 
+// ---------------- CATALOG ----------------
+export const getCatalogProcedures = async (params?: { search?: string; limit?: number; offset?: number }) => {
+  const { data } = await api.get("/api/catalog", { params });
+  return data; // { catalog: [...], total: number }
+};
+
+export const createCatalogProcedure = async (payload: { name: string; price: number }) => {
+  const { data } = await api.post("/api/catalog", payload);
+  return data;
+};
+
+export const updateCatalogProcedure = async (id: number, payload: { name?: string; price?: number }) => {
+  const { data } = await api.put(`/api/catalog/${id}`, payload);
+  return data;
+};
+
+export const deleteCatalogProcedure = async (id: number) => {
+  const { data } = await api.delete(`/api/catalog/${id}`);
+  return data;
+};
+
 // ---------------- APPOINTMENTS ----------------
 export const getAppointments = async (date?: string) => {
   const { data } = await api.get("/api/appointments", {
