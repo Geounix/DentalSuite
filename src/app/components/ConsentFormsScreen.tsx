@@ -520,8 +520,8 @@ export function ConsentFormsScreen() {
             const dres: any = await getDocument(consent.documentId);
             const doc = dres?.document || dres;
             if (doc?.key) {
-              const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
-              const prefix = apiHost.replace(/\/$/, '');
+              const apiHost = (import.meta as any).env.PROD ? '' : ((import.meta as any).env.VITE_API_URL || 'http://localhost:4000');
+              const prefix = apiHost ? apiHost.replace(/\/$/, '') : '';
               // No spaces in the URL — trim the key just in case
               setSignatureUrl(`${prefix}/uploads/${doc.key.trim()}`);
             }

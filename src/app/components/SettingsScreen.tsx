@@ -16,8 +16,8 @@ export function SettingsScreen() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
-  const prefix = apiHost.replace(/\/$/, '');
+  const apiHost = (import.meta as any).env.PROD ? '' : ((import.meta as any).env.VITE_API_URL || 'http://localhost:4000');
+  const prefix = apiHost ? apiHost.replace(/\/$/, '') : '';
 
   useEffect(() => {
     let mounted = true;

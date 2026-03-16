@@ -38,6 +38,10 @@ const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
+// Serve static frontend files (React Build)
+const frontendDistPath = path.join(__dirname, '..', '..', 'dist');
+app.use(express.static(frontendDistPath));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
@@ -56,5 +60,10 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // Global error handler – must be registered LAST
 app.use(errorHandler);
+
+// Catch-all route to serve the React app for any unhandled paths (Frontend routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
 
 export default app;
