@@ -34,6 +34,7 @@ model Patient {
   dentalProcedures  DentalProcedure[]
   documents         Document[]
   consents          Consent[]
+  medicalHistory    MedicalHistory?
 
   @@index([deletedAt])
   @@index([name])
@@ -189,4 +190,35 @@ model TreatmentCatalog {
   deletedAt DateTime?
 
   @@index([deletedAt])
+}
+
+model MedicalHistory {
+  id        Int       @id @default(autoincrement())
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  patientId Int       @unique
+
+  // Personal antecedents (Si/No answers stored as Json)
+  personalAnswers   Json?  // { q1: true, q2: false, ... q15: null }
+  // Free text for Q4 (current medications)
+  currentMedications String?
+
+  // Dental history (Si/No answers)
+  dentalAnswers     Json?  // { d1: true, d2: false, ... d5: null }
+  // Last dental visit
+  lastDentalVisit   String?
+
+  // Allergy section
+  allergyNsaids      String?
+  allergyAntibiotics  String?
+  allergyAspirin     String?
+  allergyOther       String?
+
+  // General notes / additional medications table
+  generalNotes      String?
+  medications       Json?  // [{ drug: string, objective: string }]
+
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+
+  @@index([patientId])
 }

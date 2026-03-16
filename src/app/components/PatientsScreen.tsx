@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { StatusBadge } from './StatusBadge';
-import { UserPlus, Search, Eye, Calendar, FileText, DollarSign, FileCheck, Activity, Edit } from 'lucide-react';
+import { UserPlus, Search, Eye, Calendar, FileText, DollarSign, FileCheck, Activity, Edit, HeartPulse } from 'lucide-react';
 import { OdontogramScreen } from './OdontogramScreen';
+import { MedicalHistoryTab } from './MedicalHistoryTab';
 
 interface Patient {
   id: number;
@@ -618,7 +619,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">
             <Activity className="w-4 h-4 mr-2" />
             {t('patients.profile.tabs.overview')}
@@ -638,6 +639,10 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           <TabsTrigger value="documents">
             <FileCheck className="w-4 h-4 mr-2" />
             {t('patients.profile.tabs.documents')}
+          </TabsTrigger>
+          <TabsTrigger value="antecedentes">
+            <HeartPulse className="w-4 h-4 mr-2" />
+            Antecedentes
           </TabsTrigger>
         </TabsList>
 
@@ -781,6 +786,10 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        <TabsContent value="antecedentes">
+          <MedicalHistoryTab patientId={patient.id} />
         </TabsContent>
       </Tabs>
     </div>

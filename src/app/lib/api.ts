@@ -383,7 +383,20 @@ export const getPaymentTransactions = async (paymentId: number) => {
   return data; // { transactions: [...] }
 };
 
+
 export const createPaymentTransaction = async (paymentId: number, payload: { amount: number; method?: string; transactionId?: string; notes?: string }) => {
   const { data } = await api.post(`/api/payments/${paymentId}/transactions`, payload);
   return data; // { transaction: {...}, payment: {...} }
 };
+
+// ---------------- MEDICAL HISTORY ----------------
+export const getMedicalHistory = async (patientId: number) => {
+  const { data } = await api.get(`/api/medical-history/${patientId}`);
+  return data; // { medicalHistory: {...} }
+};
+
+export const saveMedicalHistory = async (patientId: number, payload: any) => {
+  const { data } = await api.put(`/api/medical-history/${patientId}`, payload);
+  return data; // { medicalHistory: {...} }
+};
+
