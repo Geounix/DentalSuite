@@ -499,9 +499,9 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
       try {
         setPatientUploading((s) => ({ ...s, [f.name]: true }));
         await uploadDocument(f, undefined, patient.id);
-        // refresh - fetch documents for this patient only
+        // refresh - fetch documents for this patient only, excluding signatures
         const res = await getDocuments(undefined, patient.id);
-        const list = (res.documents || res || []);
+        const list = (res.documents || res || []).filter((d: any) => d.type !== 'consent-signature');
         setPatientDocs(list);
       } catch (err: any) {
         console.error('upload error', err);
@@ -529,7 +529,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
       try {
         setLoadingDocs(true);
         const res = await getDocuments(undefined, patient.id);
-        const list = (res.documents || res || []);
+        const list = (res.documents || res || []).filter((d: any) => d.type !== 'consent-signature');
         if (!mounted) return;
         setPatientDocs(list);
       } catch (err) {

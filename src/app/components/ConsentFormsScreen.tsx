@@ -1,15 +1,18 @@
-﻿import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getPatients, getUsers, getConsents, createConsent, uploadDocument, signConsent, updateConsent, getConsent, getDocument } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge } from './StatusBadge';
-import { FileCheck, Search, Eye, Edit, CheckCircle2, XCircle, FilePlus } from 'lucide-react';
+import { FileCheck, Search, Eye, Edit, CheckCircle2, XCircle, FilePlus, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 interface ConsentForm {
   id: number;
@@ -328,7 +331,8 @@ export function ConsentFormsScreen() {
         setSelectedForm(updated);
       } catch (e) {
         // fallback to optimistic update
-        const updated = { ...selectedForm, status: 'Signed', signedDate: new Date().toISOString().slice(0, 10) };
+        const updatedStatus: 'Signed' = 'Signed';
+        const updated: ConsentForm = { ...selectedForm, status: updatedStatus, signedDate: new Date().toISOString().slice(0, 10) };
         setForms(forms.map(f => f.id === selectedForm.id ? updated : f));
         setSelectedForm(updated);
       }
@@ -344,6 +348,61 @@ export function ConsentFormsScreen() {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  };
+
+  const downloadPDF = () => {
+    if (!selectedForm) return;
+
+    // Use an HTML string template directly. html2pdf renders via off-screen iframe.
+    const htmlString = `
+      <div style="background-color: white; padding: 30px 40px; color: black; font-family: 'Times New Roman', serif; max-width: 170mm; margin: 0 auto; box-sizing: border-box;">
+
+        <!-- CLINIC LOGO CENTERED -->
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #9ca3af; font-size: 36px; font-style: italic; font-weight: 300; margin: 0; font-family: 'Arial', sans-serif; display: block; width: 100%;">
+            <span style="font-size: 40px;">D</span>ental <span style="font-size: 40px;">S</span>uite
+          </h1>
+          <p style="color: #9ca3af; font-size: 13px; letter-spacing: 2px; margin: 4px 0 0 0; font-family: 'Arial', sans-serif;">Odontolog&iacute;a Especializada</p>
+        </div>
+
+        <!-- TITLE CENTERED -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <p style="margin: 4px 0; font-weight: bold; font-size: 15px; letter-spacing: 1px;">CONSENTIMIENTO INFORMADO</p>
+          <p style="margin: 4px 0; font-weight: bold; font-size: 14px;">${selectedForm.procedure.toUpperCase()}</p>
+        </div>
+
+        <!-- CONSENT CONTENT -->
+        <div style="text-align: justify; font-size: 12.5px; line-height: 1.7; word-break: break-word; overflow-wrap: break-word;">
+          ${(selectedForm.formData || '').replace(/<p/g, '<p style="page-break-inside: avoid; margin-bottom: 8px;"')}
+        </div>
+
+        <!-- SIGNATURE -->
+        ${signatureUrl ? `
+        <div style="margin-top: 40px; page-break-inside: avoid;">
+          <p style="margin-bottom: 6px; font-weight: bold; font-size: 12.5px;">Firma del Paciente:</p>
+          <img src="${signatureUrl}" style="max-height: 70px; max-width: 220px; display: block; border: 1px solid #ccc;" crossorigin="anonymous" />
+          <p style="margin-top: 6px; font-size: 11px; color: #555;">Firmado electr&oacute;nicamente el ${selectedForm.signedDate || ''}</p>
+        </div>` : ''}
+
+      </div>
+    `;
+
+    const opt = {
+      margin:       [15, 15, 15, 15] as [number, number, number, number],
+      filename:     `Consentimiento_${selectedForm.patient.replace(/\s+/g, '_')}_${selectedForm.procedure.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false,
+        ignoreElements: (node: HTMLElement) => {
+          return node.nodeName === 'STYLE' || node.nodeName === 'LINK';
+        }
+      },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+    };
+
+    html2pdf().set(opt).from(htmlString).save().catch((err: any) => console.error("PDF generation failed:", err));
   };
 
   const renderTemplate = (tpl: string) => {
@@ -472,17 +531,19 @@ export function ConsentFormsScreen() {
     return () => { mounted = false; };
   }, [selectedForm?.id]);
 
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Consent Forms</h1>
-          <p className="text-gray-600 mt-1">Manage patient consent and authorization forms</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('consentForms.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('consentForms.subtitle')}</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
           <FilePlus className="w-4 h-4 mr-2" />
-          Create Consent Form
+          {t('consentForms.createButton')}
         </Button>
       </div>
 
@@ -490,23 +551,23 @@ export function ConsentFormsScreen() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Signed Forms</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('consentForms.summaryCards.signed')}</CardTitle>
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">{signedCount}</div>
-            <p className="text-xs text-gray-500 mt-1">Completed</p>
+            <p className="text-xs text-gray-500 mt-1">{t('consentForms.summaryCards.completed')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Unsigned Forms</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">{t('consentForms.summaryCards.unsigned')}</CardTitle>
             <XCircle className="h-5 w-5 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{unsignedCount}</div>
-            <p className="text-xs text-gray-500 mt-1">Awaiting signature</p>
+            <p className="text-xs text-gray-500 mt-1">{t('consentForms.summaryCards.awaitingSignature')}</p>
           </CardContent>
         </Card>
 
@@ -695,11 +756,17 @@ export function ConsentFormsScreen() {
                         <p className="text-3xl italic font-semibold text-gray-900">{selectedForm.patient}</p>
                         <p className="text-sm text-gray-600 mt-2">Signed electronically on {selectedForm.signedDate}</p>
                       </div>
-                      {signatureUrl ? (
-                        <img src={signatureUrl} alt="Signature" className="max-w-xs h-24 object-contain border" />
-                      ) : (
-                        <CheckCircle2 className="w-12 h-12 text-emerald-600" />
-                      )}
+                      <div className="flex flex-col items-end gap-3">
+                        {signatureUrl ? (
+                          <img src={signatureUrl} alt="Signature" className="max-w-xs h-24 object-contain border bg-white" />
+                        ) : (
+                          <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+                        )}
+                        <Button variant="default" size="sm" onClick={downloadPDF} className="flex items-center gap-2">
+                          <Download className="w-4 h-4" />
+                          Descargar PDF
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

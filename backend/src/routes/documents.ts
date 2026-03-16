@@ -23,13 +23,21 @@ const ALLOWED_MIME_TYPES = [
   'image/dicom',
 ];
 
-// Organise uploads by year/month for easier management
+// Organise uploads by year/month for easier management, or separate signatures.
 const storage = multer.diskStorage({
-  destination: async (_req, _file, cb) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const dest = path.join(__dirname, '..', '..', 'uploads', String(year), month);
+  destination: async (req, _file, cb) => {
+    let dest;
+    const isSignature = req.query?.type === 'consent-signature' || req.body?.type === 'consent-signature';
+    
+    if (isSignature) {
+      dest = path.join(__dirname, '..', '..', 'uploads', 'signatures');
+    } else {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      dest = path.join(__dirname, '..', '..', 'uploads', String(year), month);
+    }
+    
     try {
       await fs.mkdir(dest, { recursive: true });
       cb(null, dest);

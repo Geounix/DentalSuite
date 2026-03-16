@@ -249,7 +249,8 @@ export const uploadDocument = async (file: File, type?: string, patientId?: numb
   if (type) form.append("type", type);
   if (patientId) form.append("patientId", String(patientId));
 
-  const { data } = await api.post("/api/documents/upload", form, {
+  const url = type ? `/api/documents/upload?type=${type}` : "/api/documents/upload";
+  const { data } = await api.post(url, form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 

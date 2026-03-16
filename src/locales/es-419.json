@@ -461,6 +461,77 @@
       "addProcedure": "Agregar procedimiento"
     }
   },
+  "catalog": {
+    "title": "Catálogo de Tratamientos",
+    "subtitle": "Administra los procedimientos y sus precios base",
+    "addProcedure": "Agregar Procedimiento",
+    "listTitle": "Listado de Procedimientos ({{count}})",
+    "listDescription": "Estos tratamientos aparecerán como opciones en el Odontograma.",
+    "searchPlaceholder": "Buscar procedimiento por nombre...",
+    "headers": {
+      "treatment": "Tratamiento",
+      "basePrice": "Precio Base ($)",
+      "actions": "Acciones"
+    },
+    "modal": {
+      "editTitle": "Editar Procedimiento",
+      "newTitle": "Nuevo Procedimiento",
+      "description": "Ajusta el nombre y el precio base del tratamiento.",
+      "nameLabel": "Nombre del Tratamiento",
+      "namePlaceholder": "Ej. Carilla de Porcelana",
+      "priceLabel": "Precio Base ($)",
+      "cancel": "Cancelar",
+      "save": "Guardar"
+    },
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este procedimiento?"
+  },
+  "consentForms": {
+    "title": "Formularios de Consentimiento",
+    "subtitle": "Administra los formularios de consentimiento y autorización de pacientes",
+    "createButton": "Crear Formulario",
+    "downloadPdf": "Descargar PDF",
+    "status": {
+      "signed": "Firmado",
+      "unsigned": "Sin Firma",
+      "pendingReview": "Revisión Pendiente"
+    },
+    "summaryCards": {
+      "signed": "Formularios Firmados",
+      "unsigned": "Sin Firma",
+      "pending": "Revisión Pendiente",
+      "completed": "Completados",
+      "awaitingSignature": "Pendientes de firma",
+      "requiresAction": "Requiere acción"
+    },
+    "searchPlaceholder": "Buscar formularios por paciente, procedimiento o título...",
+    "table": {
+      "title": "Formularios de Consentimiento ({{count}})",
+      "description": "Ver y administrar formularios de consentimiento de pacientes",
+      "formTitle": "Título del Formulario",
+      "patient": "Paciente",
+      "procedure": "Procedimiento",
+      "doctor": "Doctor",
+      "createdDate": "Fecha de Creación",
+      "signedDate": "Fecha de Firma",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "detail": {
+      "procedure": "Procedimiento",
+      "status": "Estado",
+      "createdDate": "Fecha de Creación",
+      "signedDate": "Fecha de Firma",
+      "formDetails": "Detalles del Formulario",
+      "signature": "Firma",
+      "signedElectronically": "Firmado electrónicamente el",
+      "digitalSignature": "Firma Digital",
+      "signBelow": "Firme a continuación con el ratón o pantalla táctil",
+      "clearSignature": "Borrar Firma",
+      "drawAbove": "Dibuje su firma arriba",
+      "legalNotice": "Esta firma digital es legalmente vinculante y equivalente a una firma manuscrita",
+      "signButton": "Firmar Formulario"
+    }
+  },
   "common": {
     "close": "Cerrar",
     "view": "Ver",

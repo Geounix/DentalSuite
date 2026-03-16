@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { requireRole } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -42,7 +42,7 @@ router.get('/', async (req: any, res: any, next: any) => {
 });
 
 // POST new procedure (requires auth)
-router.post('/', requireRole(['admin', 'doctor', 'staff']), async (req: any, res: any, next: any) => {
+router.post('/', requireAuth as any, requireRole(['admin', 'doctor', 'staff']), async (req: any, res: any, next: any) => {
     try {
         const data = catalogSchema.parse(req.body);
         const item = await prisma.treatmentCatalog.create({ data });
@@ -56,7 +56,7 @@ router.post('/', requireRole(['admin', 'doctor', 'staff']), async (req: any, res
 });
 
 // PUT update procedure
-router.put('/:id', requireRole(['admin', 'doctor', 'staff']), async (req: any, res: any, next: any) => {
+router.put('/:id', requireAuth as any, requireRole(['admin', 'doctor', 'staff']), async (req: any, res: any, next: any) => {
     try {
         const { id } = req.params;
         const data = catalogSchema.partial().parse(req.body);
@@ -76,7 +76,7 @@ router.put('/:id', requireRole(['admin', 'doctor', 'staff']), async (req: any, r
 });
 
 // DELETE (soft) procedure
-router.delete('/:id', requireRole(['admin']), async (req: any, res: any, next: any) => {
+router.delete('/:id', requireAuth as any, requireRole(['admin']), async (req: any, res: any, next: any) => {
     try {
         const { id } = req.params;
         await prisma.treatmentCatalog.update({

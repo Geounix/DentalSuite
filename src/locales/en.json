@@ -8,6 +8,7 @@
     "documents": "Documents",
     "consentForms": "Consent Forms",
     "reports": "Reports",
+    "catalog": "Catalog",
     "userManagement": "User Management"
   },
   "logo": {
@@ -248,9 +249,9 @@
       "bankTransfer": "Bank Transfer"
     },
     "types": {
-      "full": "Paid (Pago completo)",
-      "partial": "Partial / Abono",
-      "owes": "Owes / Debe"
+      "full": "Full Payment",
+      "partial": "Partial / Installment",
+      "owes": "Owes"
     }
   },
 
@@ -472,10 +473,80 @@
       }
     },
 
+  "catalog": {
+    "title": "Treatment Catalog",
+    "subtitle": "Manage procedures and their base prices",
+    "addProcedure": "Add Procedure",
+    "listTitle": "Procedure List ({{count}})",
+    "listDescription": "These treatments will appear as options in the Odontogram.",
+    "searchPlaceholder": "Search procedure by name...",
+    "headers": {
+      "treatment": "Treatment",
+      "basePrice": "Base Price ($)",
+      "actions": "Actions"
+    },
+    "modal": {
+      "editTitle": "Edit Procedure",
+      "newTitle": "New Procedure",
+      "description": "Adjust the name and base price of the treatment.",
+      "nameLabel": "Treatment Name",
+      "namePlaceholder": "Ex. Porcelain Veneer",
+      "priceLabel": "Base Price ($)",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "confirmDelete": "Are you sure you want to delete this procedure?"
+  },
+  "consentForms": {
+    "title": "Consent Forms",
+    "subtitle": "Manage patient consent and authorization forms",
+    "createButton": "Create Consent Form",
+    "downloadPdf": "Download PDF",
+    "status": {
+      "signed": "Signed",
+      "unsigned": "Unsigned",
+      "pendingReview": "Pending Review"
+    },
+    "summaryCards": {
+      "signed": "Signed Forms",
+      "unsigned": "Unsigned Forms",
+      "pending": "Pending Review",
+      "completed": "Completed",
+      "awaitingSignature": "Awaiting signature",
+      "requiresAction": "Requires action"
+    },
+    "searchPlaceholder": "Search consent forms by patient, procedure, or title...",
+    "table": {
+      "title": "Consent Forms ({{count}})",
+      "description": "View and manage patient consent forms",
+      "formTitle": "Form Title",
+      "patient": "Patient",
+      "procedure": "Procedure",
+      "doctor": "Doctor",
+      "createdDate": "Created Date",
+      "signedDate": "Signed Date",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "detail": {
+      "procedure": "Procedure",
+      "status": "Status",
+      "createdDate": "Created Date",
+      "signedDate": "Signed Date",
+      "formDetails": "Consent Form Details",
+      "signature": "Signature",
+      "signedElectronically": "Signed electronically on",
+      "digitalSignature": "Digital Signature",
+      "signBelow": "Sign below with your mouse or touchscreen",
+      "clearSignature": "Clear Signature",
+      "drawAbove": "Draw your signature above",
+      "legalNotice": "This digital signature is legally binding and equivalent to a handwritten signature",
+      "signButton": "Sign Consent Form"
+    }
+  },
   "common": {
     "close": "Close",
     "view": "View",
     "cancel": "Cancel"
   }
 }
-

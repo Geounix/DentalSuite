@@ -83,7 +83,9 @@ export function DocumentsScreen() {
     setLoading(true);
     try {
       const res = await getDocuments();
-      const list = res.documents || res;
+      const list = (res.documents || res || []).filter(
+        (d: any) => d.type !== 'consent-signature'
+      );
       setDocuments(list || []);
     } catch (err) {
       console.error('load documents', err);
