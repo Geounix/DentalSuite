@@ -29,6 +29,26 @@ export const deleteUser = async (id: number) => {
   return data;
 };
 
+// ---------------- SETTINGS ----------------
+export const getClinicSettings = async () => {
+  const { data } = await api.get('/api/settings');
+  return data; // { settings: {...} }
+};
+
+export const updateClinicSettings = async (payload: { name?: string; logoUrl?: string }) => {
+  const { data } = await api.put('/api/settings', payload);
+  return data;
+};
+
+export const uploadLogo = async (file: File) => {
+  const form = new FormData();
+  form.append('logo', file);
+  const { data } = await api.post('/api/settings/logo', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+
 export const resetPassword = async (id: number) => {
   const { data } = await api.post(`/api/users/${id}/reset-password`);
   return data;

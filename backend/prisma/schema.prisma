@@ -217,8 +217,17 @@ model MedicalHistory {
   generalNotes      String?
   medications       Json?  // [{ drug: string, objective: string }]
 
+
   updatedAt DateTime  @updatedAt
   createdAt DateTime  @default(now())
 
   @@index([patientId])
+}
+
+model ClinicSettings {
+  id        Int      @id @default(autoincrement())
+  name      String   @default("DentaCare")
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }

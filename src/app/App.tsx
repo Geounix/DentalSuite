@@ -17,6 +17,7 @@ const ReportsScreen = lazy(() => import('./components/ReportsScreen').then(m => 
 const DocumentsScreen = lazy(() => import('./components/DocumentsScreen').then(m => ({ default: m.DocumentsScreen })));
 const ConsentFormsScreen = lazy(() => import('./components/ConsentFormsScreen').then(m => ({ default: m.ConsentFormsScreen })));
 const CatalogScreen = lazy(() => import('./components/CatalogScreen').then(m => ({ default: m.CatalogScreen })));
+const SettingsScreen = lazy(() => import('./components/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
 // ────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -42,7 +43,7 @@ import {
 
 import { Avatar, AvatarFallback } from './components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './components/ui/dropdown-menu';
-import { getAppointments, getPatients } from './lib/api';
+import { getAppointments, getPatients, getClinicSettings } from './lib/api';
 
 type Screen =
   | 'dashboard'
@@ -82,6 +83,9 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
   const { t, i18n } = useTranslation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [clinicName, setClinicName] = useState('DentaCare');
+  const [clinicLogoUrl, setClinicLogoUrl] = useState<string | null>(null);
+  
   const location = useLocation();
   const navigate = useNavigate();
   const initials = user?.name
@@ -95,6 +99,26 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
     setUser(null);
     setIsLoggedIn(false);
   };
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSettings() {
+      try {
+        const res: any = await getClinicSettings();
+        if (mounted && res?.settings) {
+          setClinicName(res.settings.name || 'DentaCare');
+          setClinicLogoUrl(res.settings.logoUrl || null);
+        }
+      } catch (err) {
+        console.error('Failed to load clinic settings for layout', err);
+      }
+    }
+    loadSettings();
+    return () => { mounted = false; };
+  }, []);
+
+  const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  const prefix = apiHost.replace(/\/$/, '');
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -113,19 +137,27 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
         <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} h-16 px-4 border-b border-gray-200`}>
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
+              {clinicLogoUrl ? (
+                <img src={`${prefix}/uploads/${clinicLogoUrl.replace(/\\/g, '/')}`} alt="Logo" className="w-10 h-10 object-contain" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+              )}
               <div>
-                <h1 className="text-xl font-bold text-gray-900">DentaCare</h1>
+                <h1 className="text-xl font-bold text-gray-900">{clinicName}</h1>
                 <p className="text-xs text-gray-600">{t('logo.subtitle')}</p>
               </div>
             </div>
           )}
           {isSidebarCollapsed && (
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
+             clinicLogoUrl ? (
+               <img src={`${prefix}/uploads/${clinicLogoUrl.replace(/\\/g, '/')}`} alt="Logo" className="w-10 h-10 object-contain" />
+             ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+             )
           )}
           <button
             className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
@@ -253,11 +285,15 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>
-                  <Settings className="w-4 h-4 mr-2" />
-                  {t('user.settings')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {(user?.role?.toLowerCase() === 'admin') && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Ajustes del Sistema
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   {t('user.logout')}
@@ -283,6 +319,7 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
                 <Route path="/consent-forms" element={<ConsentFormsScreen />} />
                 <Route path="/reports" element={<ReportsScreen />} />
                 <Route path="/catalog" element={<CatalogScreen />} />
+                <Route path="/settings" element={<SettingsScreen />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Suspense>

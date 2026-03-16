@@ -16,6 +16,7 @@ import reportsRoutes from './routes/reports';
 import usersRoutes from './routes/users';
 import catalogRoutes from './routes/catalog';
 import medicalHistoryRoutes from './routes/medicalHistory';
+import settingsRoutes from './routes/settings';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
 import fs from 'fs';
@@ -49,6 +50,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/medical-history', medicalHistoryRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
