@@ -7,6 +7,7 @@ import { FileText, Upload, Download, Eye, Trash2, Search, Image, FileCheck, File
 import { getDocuments, uploadDocument, deleteDocument } from '../lib/api';
 // StatusBadge removed; not used in this screen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { PaginationControl } from './PaginationControl';
 
 interface DocumentItem {
   id: number;
@@ -22,12 +23,13 @@ export function DocumentsScreen() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000';
 
   const handleDownload = async (doc: DocumentItem) => {
     try {
@@ -53,6 +55,12 @@ export function DocumentsScreen() {
     const patient = (doc.patient && doc.patient.name ? doc.patient.name : '').toLowerCase();
     return name.includes(searchQuery.toLowerCase()) || patient.includes(searchQuery.toLowerCase());
   });
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE);
+  const paginatedDocuments = filteredDocuments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => { setCurrentPage(1); }, [searchQuery]);
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -200,7 +208,7 @@ export function DocumentsScreen() {
 
             <TabsContent value="grid">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {filteredDocuments.map((doc) => (
+                {paginatedDocuments.map((doc) => (
                   <Card key={doc.id} className="hover:shadow-lg transition-shadow group">
                     <CardContent className="p-4">
                       <div className="flex flex-col items-center text-center">
@@ -232,7 +240,7 @@ export function DocumentsScreen() {
 
             <TabsContent value="list">
               <div className="space-y-2">
-                {filteredDocuments.map((doc) => (
+                {paginatedDocuments.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-4 flex-1">
                       {getFileIcon((doc.type || '').toUpperCase())}
@@ -263,6 +271,7 @@ export function DocumentsScreen() {
               </div>
             </TabsContent>
           </Tabs>
+          <PaginationControl currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
     </div>

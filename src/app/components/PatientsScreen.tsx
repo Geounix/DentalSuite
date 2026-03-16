@@ -12,6 +12,7 @@ import { StatusBadge } from './StatusBadge';
 import { UserPlus, Search, Eye, Calendar, FileText, DollarSign, FileCheck, Activity, Edit, HeartPulse } from 'lucide-react';
 import { OdontogramScreen } from './OdontogramScreen';
 import { MedicalHistoryTab } from './MedicalHistoryTab';
+import { PaginationControl } from './PaginationControl';
 
 interface Patient {
   id: number;
@@ -33,6 +34,7 @@ export function PatientsScreen() {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -125,6 +127,8 @@ export function PatientsScreen() {
         email: data.patient.email ?? '',
         phone: data.patient.phone ?? '',
         dateOfBirth: data.patient.dateOfBirth ? new Date(data.patient.dateOfBirth).toISOString().split('T')[0] : '',
+        address: data.patient.address ?? '',
+        ...(data.patient.nationalId ? { nationalId: data.patient.nationalId } : {}),
         lastVisit: '-',
         nextAppointment: undefined,
         balance: data.patient.balance ?? 0
@@ -145,6 +149,13 @@ export function PatientsScreen() {
     patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     patient.phone.includes(searchQuery)
   );
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE);
+  const paginatedPatients = filteredPatients.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [searchQuery]);
 
   return (
     <>
@@ -198,7 +209,7 @@ export function PatientsScreen() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPatients.map((patient) => (
+                    {paginatedPatients.map((patient) => (
                       <TableRow key={patient.id}>
                         <TableCell className="font-medium">{patient.name}</TableCell>
                         <TableCell>
@@ -259,6 +270,7 @@ export function PatientsScreen() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationControl currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             </CardContent>
           </Card>
 
@@ -489,7 +501,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<any>(null);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [patientUploading, setPatientUploading] = useState<Record<string, boolean>>({});
 

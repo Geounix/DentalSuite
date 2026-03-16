@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { PaginationControl } from './PaginationControl';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -38,6 +39,7 @@ export function ConsentFormsScreen() {
 
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedForm, setSelectedForm] = useState<ConsentForm | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [signature, setSignature] = useState('');
@@ -125,6 +127,12 @@ export function ConsentFormsScreen() {
     form.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
     form.procedure.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredForms.length / ITEMS_PER_PAGE);
+  const paginatedForms = filteredForms.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => { setCurrentPage(1); }, [searchQuery]);
 
   const signedCount = forms.filter(f => f.status === 'Signed').length;
   const unsignedCount = forms.filter(f => f.status === 'Unsigned').length;
@@ -350,25 +358,26 @@ export function ConsentFormsScreen() {
       .replace(/'/g, '&#039;');
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     if (!selectedForm) return;
 
-    // Use an HTML string template directly. html2pdf renders via off-screen iframe.
-    const htmlString = `
+    // Add a loading state here if needed, but for now we'll just await the generation
+    const container = document.createElement('div');
+    container.innerHTML = `
       <div style="background-color: white; padding: 30px 40px; color: black; font-family: 'Times New Roman', serif; max-width: 170mm; margin: 0 auto; box-sizing: border-box;">
 
         <!-- CLINIC LOGO CENTERED -->
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #9ca3af; font-size: 36px; font-style: italic; font-weight: 300; margin: 0; font-family: 'Arial', sans-serif; display: block; width: 100%;">
+        <div style="text-align: center; margin-bottom: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <h1 style="color: #9ca3af; font-size: 36px; font-style: italic; font-weight: 300; margin: 0; font-family: 'Arial', sans-serif; text-align: center;">
             <span style="font-size: 40px;">D</span>ental <span style="font-size: 40px;">S</span>uite
           </h1>
-          <p style="color: #9ca3af; font-size: 13px; letter-spacing: 2px; margin: 4px 0 0 0; font-family: 'Arial', sans-serif;">Odontolog&iacute;a Especializada</p>
+          <p style="color: #9ca3af; font-size: 13px; letter-spacing: 2px; margin: 4px 0 0 0; font-family: 'Arial', sans-serif; text-align: center;">Odontolog&iacute;a Especializada</p>
         </div>
 
         <!-- TITLE CENTERED -->
-        <div style="text-align: center; margin-bottom: 24px;">
-          <p style="margin: 4px 0; font-weight: bold; font-size: 15px; letter-spacing: 1px;">CONSENTIMIENTO INFORMADO</p>
-          <p style="margin: 4px 0; font-weight: bold; font-size: 14px;">${selectedForm.procedure.toUpperCase()}</p>
+        <div style="text-align: center; margin-bottom: 24px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <p style="margin: 4px 0; font-weight: bold; font-size: 15px; letter-spacing: 1px; text-align: center;">CONSENTIMIENTO INFORMADO</p>
+          <p style="margin: 4px 0; font-weight: bold; font-size: 14px; text-align: center;">${selectedForm.procedure.toUpperCase()}</p>
         </div>
 
         <!-- CONSENT CONTENT -->
@@ -380,7 +389,7 @@ export function ConsentFormsScreen() {
         ${signatureUrl ? `
         <div style="margin-top: 40px; page-break-inside: avoid;">
           <p style="margin-bottom: 6px; font-weight: bold; font-size: 12.5px;">Firma del Paciente:</p>
-          <img src="${signatureUrl}" style="max-height: 70px; max-width: 220px; display: block; border: 1px solid #ccc;" crossorigin="anonymous" />
+          <img src="${signatureUrl}" style="max-height: 70px; max-width: 220px; display: block; border: 1px solid #ccc; background: white;" crossorigin="anonymous" />
           <p style="margin-top: 6px; font-size: 11px; color: #555;">Firmado electr&oacute;nicamente el ${selectedForm.signedDate || ''}</p>
         </div>` : ''}
 
@@ -394,15 +403,18 @@ export function ConsentFormsScreen() {
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
-        logging: false,
-        ignoreElements: (node: HTMLElement) => {
-          return node.nodeName === 'STYLE' || node.nodeName === 'LINK';
-        }
+        logging: true,
       },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+      pagebreak:    { mode: ['css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(htmlString).save().catch((err: any) => console.error("PDF generation failed:", err));
+    try {
+      await html2pdf().set(opt).from(container.firstElementChild as HTMLElement).save();
+    } catch (err: any) {
+      console.error("PDF generation failed:", err);
+      alert("No se pudo generar el PDF, verifique la consola.");
+    }
   };
 
   const renderTemplate = (tpl: string) => {
@@ -620,7 +632,7 @@ export function ConsentFormsScreen() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredForms.map((form) => (
+                {paginatedForms.map((form) => (
                   <TableRow key={form.id}>
                     <TableCell className="font-medium">{form.title}</TableCell>
                     <TableCell className="text-gray-600">{form.patient}</TableCell>
@@ -648,6 +660,7 @@ export function ConsentFormsScreen() {
               </TableBody>
             </Table>
           </div>
+          <PaginationControl currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 

@@ -119,7 +119,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Button
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              className="h-auto py-8 flex flex-col items-center gap-3 bg-blue-600 hover:bg-blue-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('patients');
                 else navigate('/patients');
@@ -127,30 +127,30 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
                 setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-patient')), 400);
               }}
             >
-              <UserPlus className="w-6 h-6" />
-              <span>{t('quickActions.newPatient')}</span>
+              <UserPlus className="w-12 h-12" />
+              <span className="text-base font-medium">{t('quickActions.newPatient')}</span>
             </Button>
             <Button
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-teal-600 hover:bg-teal-700"
+              className="h-auto py-8 flex flex-col items-center gap-3 bg-teal-600 hover:bg-teal-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('appointments');
                 else navigate('/appointments');
                 setTimeout(() => window.dispatchEvent(new CustomEvent('open:create-appointment')), 400);
               }}
             >
-              <CalendarPlus className="w-6 h-6" />
-              <span>{t('quickActions.newAppointment')}</span>
+              <CalendarPlus className="w-12 h-12" />
+              <span className="text-base font-medium">{t('quickActions.newAppointment')}</span>
             </Button>
             <Button
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
+              className="h-auto py-8 flex flex-col items-center gap-3 bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 if (typeof onNavigate === 'function') onNavigate('payments');
                 else navigate('/payments');
                 setTimeout(() => window.dispatchEvent(new CustomEvent('open:record-payment')), 400);
               }}
             >
-              <Wallet className="w-6 h-6" />
-              <span>{t('quickActions.recordPayment')}</span>
+              <Wallet className="w-12 h-12" />
+              <span className="text-base font-medium">{t('quickActions.recordPayment')}</span>
             </Button>
           </div>
         </CardContent>

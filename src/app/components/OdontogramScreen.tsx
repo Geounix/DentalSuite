@@ -84,7 +84,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
         }
         // load patient name
         try {
-          const p = await getPatient(patientId);
+          const p = await getPatient(patientId!);
           if (mounted && p && p.patient) setPatientName(p.patient.name);
         } catch (err) {
           // fallback: ignore
@@ -524,10 +524,10 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
             )}
 
             {/* Add New Procedure Form */}
-            <div>
+            <div className="pb-10">
               <h3 className="text-lg font-semibold mb-4">{t('odontogram.addNew.title')}</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>{t('odontogram.labels.condition')}</Label>
                     <Select value={newProcedure.condition || ''} onValueChange={(value) => setNewProcedure({ ...newProcedure, condition: value })}>
@@ -556,7 +556,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>{t('odontogram.labels.status')}</Label>
                     <Select value={newProcedure.status} onValueChange={(value: any) => setNewProcedure({ ...newProcedure, status: value })}>
@@ -590,7 +590,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>{t('odontogram.labels.cost')}</Label>
                     <Input

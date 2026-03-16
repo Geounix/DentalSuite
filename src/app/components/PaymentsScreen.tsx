@@ -11,6 +11,7 @@ import { StatusBadge } from './StatusBadge';
 import { Wallet, Search, Eye, DollarSign, TrendingDown, Receipt } from 'lucide-react';
 import { getPayments, createPayment, getPatients } from '../lib/api';
 import { getPaymentTransactions, createPaymentTransaction, updatePayment } from '../lib/api';
+import { PaginationControl } from './PaginationControl';
 
 interface Payment {
   id: number;
@@ -29,6 +30,7 @@ interface Payment {
 export function PaymentsScreen() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentTransactions, setPaymentTransactions] = useState<any[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
@@ -55,6 +57,12 @@ export function PaymentsScreen() {
     (payment.patient || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (payment.procedure || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE);
+  const paginatedPayments = filteredPayments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => { setCurrentPage(1); }, [searchQuery]);
 
   const totalOutstanding = payments.reduce((sum, p) => sum + ((p.finalAmount ?? 0) - (p.amountPaid ?? 0)), 0);
   const totalInsuranceSavings = payments.reduce((sum, p) => sum + (p.insuranceCoverage ?? 0), 0);
@@ -106,7 +114,7 @@ export function PaymentsScreen() {
     async function loadTx() {
       try {
         setLoadingTransactions(true);
-        const res = await getPaymentTransactions(selectedPayment.id);
+        const res = await getPaymentTransactions(selectedPayment!.id);
         if (!mounted) return;
         setPaymentTransactions(res.transactions || []);
       } catch (err) {
@@ -181,7 +189,7 @@ export function PaymentsScreen() {
         insuranceCoverage: created.insuranceCoverage,
         finalAmount: created.finalAmount,
         amountPaid: created.amountPaid,
-        status: String(created.status ?? (created.amountPaid >= created.finalAmount ? 'paid' : (created.amountPaid > 0 ? 'pending' : 'unpaid'))).toLowerCase(),
+        status: String(created.status ?? (created.amountPaid >= created.finalAmount ? 'paid' : (created.amountPaid > 0 ? 'pending' : 'unpaid'))).toLowerCase() as any,
         paymentMethod: created.paymentMethod,
         transactionId: created.transactionId
       };
@@ -284,7 +292,7 @@ export function PaymentsScreen() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPayments.map((payment) => (
+                {paginatedPayments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">{payment.patient}</TableCell>
                     <TableCell className="text-gray-600">{payment.procedure}</TableCell>
@@ -316,6 +324,7 @@ export function PaymentsScreen() {
               </TableBody>
             </Table>
           </div>
+          <PaginationControl currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </CardContent>
       </Card>
 
@@ -581,8 +590,8 @@ export function PaymentsScreen() {
                 const updatedPayment = res.payment || res;
                 const normalizedStatus = String(updatedPayment.status).toLowerCase();
                 setPaymentTransactions(prev => [...prev, tx]);
-                setPayments(prev => prev.map(p => p.id === updatedPayment.id ? ({ ...p, amountPaid: updatedPayment.amountPaid, status: normalizedStatus }) : p));
-                setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updatedPayment.amountPaid, status: normalizedStatus }) : prev);
+                setPayments(prev => prev.map(p => p.id === updatedPayment.id ? ({ ...p, amountPaid: updatedPayment.amountPaid, status: normalizedStatus as any }) : p));
+                setSelectedPayment(prev => prev ? ({ ...prev, amountPaid: updatedPayment.amountPaid, status: normalizedStatus as any }) : prev);
                 setInstallmentForm({ amount: '', method: 'credit-card', transactionId: '', notes: '' });
                 setIsAddInstallmentOpen(false);
               } catch (err) {

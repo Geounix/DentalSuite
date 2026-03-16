@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from './ui/label';
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { getCatalogProcedures, createCatalogProcedure, updateCatalogProcedure, deleteCatalogProcedure } from '../lib/api';
+import { PaginationControl } from './PaginationControl';
 
 export function CatalogScreen() {
     const { t } = useTranslation();
@@ -15,6 +16,7 @@ export function CatalogScreen() {
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,9 +44,14 @@ export function CatalogScreen() {
     useEffect(() => {
         const handler = setTimeout(() => {
             loadData(search);
+            setCurrentPage(1);
         }, 300);
         return () => clearTimeout(handler);
     }, [search]);
+
+    const ITEMS_PER_PAGE = 10;
+    const totalPages = Math.ceil(procedures.length / ITEMS_PER_PAGE);
+    const paginatedProcedures = procedures.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     const handleOpenModal = (item?: any) => {
         if (item) {
@@ -128,7 +135,7 @@ export function CatalogScreen() {
                                 ) : procedures.length === 0 ? (
                                     <TableRow><TableCell colSpan={3} className="text-center py-8">No se encontraron procedimientos</TableCell></TableRow>
                                 ) : (
-                                    procedures.map((proc) => (
+                                    paginatedProcedures.map((proc) => (
                                         <TableRow key={proc.id}>
                                             <TableCell className="font-medium">{proc.name}</TableCell>
                                             <TableCell>${proc.price?.toFixed(2)}</TableCell>
@@ -146,6 +153,7 @@ export function CatalogScreen() {
                             </TableBody>
                         </Table>
                     </div>
+                    <PaginationControl currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
                 </CardContent>
             </Card>
 
