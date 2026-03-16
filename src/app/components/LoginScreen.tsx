@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { AlertCircle, Activity } from 'lucide-react';
+import { getClinicSettings } from '../lib/api';
 
 interface LoginScreenProps {
   onLogin: (user: { id: number; name: string; email: string; role: string }, token: string) => void;
@@ -14,6 +15,28 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [clinicName, setClinicName] = useState('DentaCare');
+  const [clinicLogoUrl, setClinicLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSettings() {
+      try {
+        const res: any = await getClinicSettings();
+        if (mounted && res?.settings) {
+          setClinicName(res.settings.name || 'DentaCare');
+          setClinicLogoUrl(res.settings.logoUrl || null);
+        }
+      } catch (err) {
+        console.error('Failed to load clinic settings on login', err);
+      }
+    }
+    loadSettings();
+    return () => { mounted = false; };
+  }, []);
+
+  const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  const prefix = apiHost.replace(/\/$/, '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +55,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setError('');
     setLoading(true);
     try {
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
       const res = await fetch(`${base}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,11 +87,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 mb-4">
-            <Activity className="w-9 h-9 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">DentaCare</h1>
+        <div className="text-center mb-8 flex flex-col items-center">
+          {clinicLogoUrl ? (
+            <img 
+              src={`${prefix}/uploads/${clinicLogoUrl.replace(/\\/g, '/')}`} 
+              alt="Clinic Logo" 
+              className="w-24 h-24 object-contain mb-4" 
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 mb-4">
+              <Activity className="w-9 h-9 text-white" />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{clinicName}</h1>
           <p className="text-gray-600">Dental Clinic Management System</p>
         </div>
 
@@ -135,7 +166,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         </Card>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          © 2026 DentaCare. All rights reserved.
+          © {new Date().getFullYear()} {clinicName}. All rights reserved.
         </p>
       </div>
     </div>
