@@ -24,9 +24,23 @@ import fs from 'fs';
 const app = express();
 
 // CORS – allow credentials so the HttpOnly cookie is sent cross-origin
-const allowedOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:4000',
+  'http://127.0.0.1:5173'
+].filter(Boolean) as string[];
+
 app.use(cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('geunix.com')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 

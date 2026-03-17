@@ -501,7 +501,8 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<any>(null);
-  const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000';
+  const API_BASE = (import.meta as any).env.PROD ? '' : ((import.meta as any).env.VITE_API_URL || 'http://localhost:4000');
+  const prefix = API_BASE ? API_BASE.replace(/\/$/, '') : '';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [patientUploading, setPatientUploading] = useState<Record<string, boolean>>({});
 

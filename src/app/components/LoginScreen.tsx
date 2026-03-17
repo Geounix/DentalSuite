@@ -55,8 +55,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setError('');
     setLoading(true);
     try {
-      const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
-      const res = await fetch(`${base}/api/auth/login`, {
+      const base = (import.meta as any).env.PROD ? '' : ((import.meta as any).env.VITE_API_URL || 'http://localhost:4000');
+      const res = await fetch(`${base.replace(/\/$/, '')}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

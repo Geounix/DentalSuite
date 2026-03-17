@@ -29,7 +29,7 @@ export function DocumentsScreen() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000';
+  const API_BASE = (import.meta as any).env.PROD ? '' : ((import.meta as any).env.VITE_API_URL || 'http://localhost:4000');
 
   const handleDownload = async (doc: DocumentItem) => {
     try {
