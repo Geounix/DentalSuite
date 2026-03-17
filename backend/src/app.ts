@@ -54,7 +54,17 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Serve static frontend files (React Build)
 const frontendDistPath = path.join(__dirname, '..', '..', 'dist');
-app.use(express.static(frontendDistPath));
+app.use(express.static(frontendDistPath, {
+  setHeaders: (res, path) => {
+    if (path.includes('/assets/')) {
+      // Cache assets with hashes for 1 year
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    } else {
+      // Do not cache index.html or other root files
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientsRoutes);
@@ -77,6 +87,12 @@ app.use(errorHandler);
 
 // Catch-all route to serve the React app for any unhandled paths (Frontend routing)
 app.get('*', (req, res) => {
+  // If the request is for an asset (e.g., /assets/..., .js, .css, .png), return 404 instead of index.html
+  if (req.path.startsWith('/assets/') || req.path.match(/\.[a-zA-Z0-9]+$/)) {
+    return res.status(404).send('Asset not found');
+  }
+  // Never cache the index.html fallback
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
