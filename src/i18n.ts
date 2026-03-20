@@ -9,12 +9,13 @@ const resources = {
 };
 
 const stored = typeof window !== 'undefined' ? localStorage.getItem('language') : null;
-const defaultLng = stored || (typeof navigator !== 'undefined' ? navigator.language : 'en');
+// Default to Spanish (es-419) if no language is stored, instead of English.
+const defaultLng = stored || 'es-419';
 
 i18n.use(initReactI18next).init({
   resources,
   lng: defaultLng,
-  fallbackLng: 'en',
+  fallbackLng: 'es-419',
   interpolation: { escapeValue: false }
 });
 

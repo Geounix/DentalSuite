@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './ui/sheet';
 import { StatusBadge } from './StatusBadge';
-import { X, Plus, Calendar, DollarSign } from 'lucide-react';
+import { X, Plus, Calendar, DollarSign, FileText } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 interface Procedure {
@@ -26,9 +26,9 @@ interface ToothData {
   procedures: Procedure[];
 }
 
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure, getCatalogProcedures } from '../lib/api';
+import { getProcedures, createDentalProcedure, getUsers, getPatient, updateDentalProcedure, getCatalogProcedures, getClinicSettings } from '../lib/api';
+import html2pdf from 'html2pdf.js';
 
 export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const { t } = useTranslation();
@@ -37,6 +37,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
   const [patientName, setPatientName] = useState<string | null>(null);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [treatmentOptions, setTreatmentOptions] = useState<any[]>([]);
+  const [clinicSettings, setClinicSettings] = useState<any>(null);
   // Static options requested by the user
   const conditionOptions = [
     'Diente sano', 'Clase I', 'Clase II', 'Clase III', 'Clase IV', 'Clase V',
@@ -72,15 +73,19 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     let mounted = true;
     async function load() {
       try {
-        const [procsRes, usersRes, catalogRes] = await Promise.all([
+        const [procsRes, usersRes, catalogRes, settingsRes] = await Promise.all([
           getProcedures(),
           getUsers(),
-          getCatalogProcedures({ limit: 2000 }) // Load all to have them available
+          getCatalogProcedures({ limit: 2000 }), // Load all to have them available
+          getClinicSettings().catch(() => null)
         ]);
         const users = usersRes.users || [];
         if (mounted) {
           setUsersList(users);
           setTreatmentOptions(catalogRes.catalog || []);
+          if (settingsRes && settingsRes.settings) {
+            setClinicSettings(settingsRes.settings);
+          }
         }
         // load patient name
         try {
@@ -297,12 +302,119 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
     }
   };
 
+  const handleGenerateQuote = async () => {
+    const allProcs: (Procedure & { toothNumber: number })[] = [];
+    teethData.forEach(tooth => {
+      tooth.procedures.forEach(p => {
+        if (p.status === 'Planned') allProcs.push({ ...p, toothNumber: tooth.number });
+      });
+    });
+
+    if (allProcs.length === 0) {
+      alert(t('odontogram.quote.noPlanned'));
+      return;
+    }
+
+    const total = allProcs.reduce((sum, p) => sum + (p.cost || 0), 0).toFixed(2);
+    const dateStr = new Date().toLocaleDateString();
+    const clinicName = clinicSettings?.name || 'DentaCare';
+
+    const rowsHtml = allProcs.map(p => `
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 10px 12px; font-weight: 500; color: #374151;">#${p.toothNumber}</td>
+        <td style="padding: 10px 12px;">
+          <div style="font-weight: 600; color: #111827;">${p.treatment}</div>
+          <div style="font-size: 11px; color: #6b7280;">${p.condition}</div>
+        </td>
+        <td style="padding: 10px 12px; text-align: right; font-weight: 600; color: #111827;">$${(p.cost || 0).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; color: #111827; padding: 32px; width: 180mm; box-sizing: border-box;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 28px;">
+          <div>
+            <h1 style="margin: 0 0 4px 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #030213;">${clinicName}</h1>
+            <p style="margin: 0; font-size: 13px; color: #6b7280;">Cotizaci&oacute;n de Tratamiento Odontol&oacute;gico</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="margin: 0; font-size: 13px; color: #374151;"><strong>Fecha:</strong> ${dateStr}</p>
+          </div>
+        </div>
+
+        <!-- Patient Info -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 28px;">
+          <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 700; color: #1f2937;">Paciente: ${patientName ?? `#${patientId}`}</p>
+          <p style="margin: 0; font-size: 13px; color: #6b7280;">ID: #${patientId}</p>
+        </div>
+
+        <!-- Procedure Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+          <thead>
+            <tr style="background: #f3f4f6;">
+              <th style="padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #374151; border-bottom: 2px solid #d1d5db;">Diente</th>
+              <th style="padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #374151; border-bottom: 2px solid #d1d5db;">Tratamiento / Procedimiento</th>
+              <th style="padding: 10px 12px; text-align: right; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #374151; border-bottom: 2px solid #d1d5db;">Costo</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+
+        <!-- Total -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 48px;">
+          <div style="background: #f0f0f5; border: 1px solid #c7c7d6; border-radius: 8px; padding: 14px 20px; min-width: 220px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600; font-size: 14px; color: #374151;">Costo Total Estimado:</span>
+              <span style="font-size: 20px; font-weight: 800; color: #030213;">$${total}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
+          <p style="margin: 0; font-size: 11px; color: #9ca3af; font-style: italic;">Esta cotizaci&oacute;n es de car&aacute;cter informativo. Los precios est&aacute;n sujetos a cambios tras una evaluaci&oacute;n cl&iacute;nica exhaustiva. V&aacute;lido por 30 d&iacute;as.</p>
+        </div>
+      </div>
+    `;
+
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
+
+    const opt = {
+      margin:       [10, 10, 10, 10] as [number, number, number, number],
+      filename:     `Cotizacion_${(patientName || String(patientId)).replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+    };
+
+    try {
+      await html2pdf().set(opt).from(container.firstElementChild as HTMLElement).save();
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('No se pudo generar la cotización.');
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('odontogram.title')}</h1>
-        <p className="text-gray-600 mt-1">{t('odontogram.subtitle', { patient: patientName ?? `#${patientId}` })}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{t('odontogram.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('odontogram.subtitle', { patient: patientName ?? `#${patientId}` })}</p>
+        </div>
+        <Button onClick={handleGenerateQuote} className="bg-primary text-white hover:bg-primary/90">
+          <FileText className="w-4 h-4 mr-2" />
+          {t('odontogram.quote.button')}
+        </Button>
       </div>
 
       {/* Legend */}
@@ -429,14 +541,14 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
       {/* Tooth Details Side Panel */}
       <Sheet open={selectedTooth !== null} onOpenChange={() => setSelectedTooth(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
+          <SheetHeader className="px-4 sm:px-6 pt-6 pb-2">
             <SheetTitle>{t('odontogram.toothTitle', { num: selectedTooth })}</SheetTitle>
             <SheetDescription>
               {t('odontogram.toothDescription')}
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-4 space-y-6 px-4 sm:px-6 pb-6">
             {/* Existing Procedures */}
             {selectedToothData && selectedToothData.procedures.length > 0 && (
               <div>
@@ -629,6 +741,7 @@ export function OdontogramScreen({ patientId }: { patientId?: number }) {
           </div>
         </SheetContent>
       </Sheet>
+
     </div>
   );
 }

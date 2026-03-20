@@ -83,8 +83,8 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
   const { t, i18n } = useTranslation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [clinicName, setClinicName] = useState('DentaCare');
-  const [clinicLogoUrl, setClinicLogoUrl] = useState<string | null>(null);
+  const [clinicName, setClinicName] = useState(() => localStorage.getItem('clinicName') || 'DentaCare');
+  const [clinicLogoUrl, setClinicLogoUrl] = useState<string | null>(() => localStorage.getItem('clinicLogoUrl') || null);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,8 +106,14 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
       try {
         const res: any = await getClinicSettings();
         if (mounted && res?.settings) {
-          setClinicName(res.settings.name || 'DentaCare');
-          setClinicLogoUrl(res.settings.logoUrl || null);
+          const name = res.settings.name || 'DentaCare';
+          const logo = res.settings.logoUrl || null;
+          setClinicName(name);
+          setClinicLogoUrl(logo);
+          // Cache immediately to avoid flash on next reload
+          localStorage.setItem('clinicName', name);
+          if (logo) localStorage.setItem('clinicLogoUrl', logo);
+          else localStorage.removeItem('clinicLogoUrl');
         }
       } catch (err) {
         console.error('Failed to load clinic settings for layout', err);

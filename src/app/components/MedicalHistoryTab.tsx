@@ -183,22 +183,12 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps) {
     <div className="space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <HeartPulse className="w-5 h-5 text-rose-500" />
         <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <HeartPulse className="w-5 h-5 text-rose-500" />
-            Antecedentes Médicos
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900">Antecedentes Médicos</h2>
           <p className="text-sm text-gray-500 mt-0.5">Historial médico y dental del paciente</p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className={`gap-2 ${saved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-        >
-          <Save className="w-4 h-4" />
-          {saving ? 'Guardando…' : saved ? '¡Guardado!' : 'Guardar cambios'}
-        </Button>
       </div>
 
       {/* ── Personal Antecedents ───────────────────────────────────────── */}
@@ -424,6 +414,18 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps) {
       {/* ── Legal Notice ───────────────────────────────────────────────── */}
       <div className="text-center text-xs text-gray-400 italic border-t border-dashed pt-4">
         EN EL FUTURO COMUNÍQUENOS CUALQUIER CAMBIO EN SUS ANTECEDENTES MÉDICOS O DE CUALQUIER MEDICAMENTO QUE ESTÉ TOMANDO.
+      </div>
+
+      {/* ── Save Button ────────────────────────────────────────────────── */}
+      <div className="flex justify-end pb-4">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className={`gap-2 px-8 ${saved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+        >
+          <Save className="w-4 h-4" />
+          {saving ? 'Guardando…' : saved ? '¡Guardado!' : 'Guardar cambios'}
+        </Button>
       </div>
 
     </div>

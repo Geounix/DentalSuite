@@ -29,7 +29,30 @@
     "none": "No hay citas próximas en la siguiente hora."
   },
   "settings": {
-    "language": "Idioma"
+    "language": "Idioma",
+    "title": "Ajustes de la Clínica",
+    "subtitle": "Configura el nombre y el logo principal del sistema",
+    "general": {
+      "title": "Información General",
+      "description": "Cambia el nombre que aparece en la barra lateral superior",
+      "nameLabel": "Nombre de la Aplicación",
+      "namePlaceholder": "Ej. DentaCare",
+      "saveButton": "Guardar Cambios",
+      "saving": "Guardando...",
+      "success": "¡Ajustes actualizados correctamente! Recarga la página para ver los cambios en la barra lateral."
+    },
+    "logo": {
+      "title": "Logo de la Clínica",
+      "description": "Sube un archivo de imagen (JPG, PNG, WebP) de máximo 5MB",
+      "uploadLabel": "Subir nuevo logo",
+      "noLogo": "Sin logo configurado",
+      "success": "¡Logo actualizado correctamente! Recarga la página para verlo en todo el sistema."
+    },
+    "errors": {
+      "load": "Error al cargar los ajustes.",
+      "upload": "Error al subir el logo.",
+      "save": "Error al actualizar los ajustes."
+    }
   },
   "viewCalendar": "Ver calendario",
   "openSchedule": "Abrir agenda completa",
@@ -416,6 +439,21 @@
   },
   "odontogram": {
     "title": "Odontograma",
+    "quote": {
+      "button": "Generar Cotización",
+      "title": "Cotización de Tratamiento Odontológico",
+      "date": "Fecha",
+      "patient": "Paciente",
+      "document": "ID / Documento",
+      "table": {
+        "tooth": "Diente",
+        "treatment": "Tratamiento / Procedimiento",
+        "cost": "Costo"
+      },
+      "total": "Costo Total Estimado",
+      "validity": "Esta cotización es de carácter informativo. Los precios están sujetos a cambios tras una evaluación clínica exhaustiva. Válido por 30 días.",
+      "noPlanned": "No hay procedimientos planificados para cotizar."
+    },
     "subtitle": "Gráfico dental interactivo para el paciente: {{patient}}",
     "legend": {
       "healthy": "Saludable",
