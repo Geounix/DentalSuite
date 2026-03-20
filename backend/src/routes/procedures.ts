@@ -14,7 +14,7 @@ const procedureSchema = z.object({
   toothNumber: z.number().int().min(1).max(52),
   condition: z.string().min(1),
   treatment: z.string().min(1),
-  status: z.enum(['planned', 'in-progress', 'completed', 'cancelled']).optional().default('planned'),
+  status: z.enum(['planned', 'in-progress', 'completed', 'cancelled', 'missing']).optional().default('planned'),
   doctorId: z.number().int().positive().optional().nullable(),
   cost: z.number().nonnegative().optional().nullable(),
   date: z.string().optional().nullable(),
