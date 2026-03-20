@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { getPatients, createPatient, updatePatient, getAppointments, getUsers, getProcedures, getPayments, getDocuments, deleteDocument, uploadDocument } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -85,6 +86,10 @@ export function PatientsScreen() {
 
   // Crear paciente
   const handleCreatePatient = async () => {
+    if (formData.phone && formData.phone.length !== 10) {
+      alert('El número de teléfono en República Dominicana debe tener exactamente 10 dígitos (Ej: 8091234567).');
+      return;
+    }
     try {
       const data = await createPatient(formData);
       const newPatient: Patient = {
@@ -119,6 +124,10 @@ export function PatientsScreen() {
   // Editar paciente
   const handleEditPatient = async () => {
     if (!editingPatient) return;
+    if (formData.phone && formData.phone.length !== 10) {
+      alert('El número de teléfono en República Dominicana debe tener exactamente 10 dígitos (Ej: 8091234567).');
+      return;
+    }
     try {
       const data = await updatePatient(editingPatient.id, formData);
       const updatedPatient: Patient = {
@@ -289,7 +298,10 @@ export function PatientsScreen() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const lettersOnly = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                      setFormData({ ...formData, name: lettersOnly });
+                    }}
                     placeholder={t('patients.createModal.placeholders.fullName')}
                   />
                 </div>
@@ -331,8 +343,12 @@ export function PatientsScreen() {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder={t('patients.createModal.placeholders.phone')}
+                    maxLength={10}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData({ ...formData, phone: digitsOnly });
+                    }}
+                    placeholder="(809) 123-4567"
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
@@ -380,7 +396,10 @@ export function PatientsScreen() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const lettersOnly = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                      setFormData({ ...formData, name: lettersOnly });
+                    }}
                     placeholder="John Doe"
                   />
                 </div>
@@ -408,8 +427,12 @@ export function PatientsScreen() {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
+                    maxLength={10}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData({ ...formData, phone: digitsOnly });
+                    }}
+                    placeholder="(809) 123-4567"
                   />
                 </div>
                 <div className="space-y-2">
@@ -465,6 +488,7 @@ export function PatientsScreen() {
 // Patient Profile with Tabs
 function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: () => void }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [patientPayments, setPatientPayments] = useState<any[]>([]);
   const [loadingPatientPayments, setLoadingPatientPayments] = useState(true);
 
@@ -598,7 +622,15 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
           <p className="text-gray-600 mt-1">{t('patients.profile.patientId', { id: patient.id })}</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => {
+            navigate('/appointments');
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('open:create-appointment'));
+            }, 100);
+          }}
+        >
           <Calendar className="w-4 h-4 mr-2" />
           {t('patients.profile.newAppointment')}
         </Button>
