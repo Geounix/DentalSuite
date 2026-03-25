@@ -20,6 +20,12 @@ const createPaymentSchema = z.object({
   transactionId: z.string().optional().nullable(),
   paymentType: z.string().optional(),
   notes: z.string().optional().nullable(),
+  items: z.array(z.object({
+    id: z.number().optional(),
+    name: z.string(),
+    price: z.number(),
+    quantity: z.number().default(1)
+  })).optional(),
 });
 
 const addTransactionSchema = z.object({
@@ -100,7 +106,7 @@ router.post('/', asyncHandler(async (req, res) => {
   const parsed = createPaymentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.errors });
 
-  const { patientId, appointmentId, procedure, originalAmount, insuranceCoverage = 0, amountPaid = 0, paymentMethod, transactionId, paymentType, notes } = parsed.data;
+  const { patientId, appointmentId, procedure, items, originalAmount, insuranceCoverage = 0, amountPaid = 0, paymentMethod, transactionId, paymentType, notes } = parsed.data;
   const finalAmount = originalAmount - insuranceCoverage;
 
   let status = 'unpaid';
@@ -113,10 +119,10 @@ router.post('/', asyncHandler(async (req, res) => {
   }
 
   const payment = await prisma.payment.create({
-    data: { patientId, appointmentId, procedure, originalAmount, insuranceCoverage, finalAmount, amountPaid, paymentMethod, transactionId, notes, status },
+    data: { patientId, appointmentId, procedure, items: items ?? undefined, originalAmount, insuranceCoverage, finalAmount, amountPaid, paymentMethod, transactionId, notes, status },
     include: { patient: { select: { name: true } } },
   });
-  res.status(201).json({ payment: { ...payment, patientName: payment.patient?.name } });
+  res.status(201).json({ payment: { ...payment, patientName: (payment as any).patient?.name } });
 }));
 
 router.put('/:id', asyncHandler(async (req, res) => {

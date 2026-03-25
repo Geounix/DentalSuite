@@ -377,6 +377,8 @@ export const getPayment = async (id: number) => {
 export const createPayment = async (payload: {
   patientId: number;
   appointmentId?: number | null;
+  procedure?: string;
+  items?: any[];
   originalAmount: number;
   insuranceCoverage?: number;
   amountPaid?: number;

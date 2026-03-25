@@ -186,7 +186,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps) {
       <div className="flex items-center gap-2">
         <HeartPulse className="w-5 h-5 text-rose-500" />
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Antecedentes Médicos</h2>
+          <h2 className="text-xl font-bold text-gray-900">Historial Médico</h2>
           <p className="text-sm text-gray-500 mt-0.5">Historial médico y dental del paciente</p>
         </div>
       </div>

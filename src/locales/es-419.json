@@ -64,7 +64,7 @@
     "todaysAppointments": "Citas de hoy",
     "monthlyRevenue": "Ingresos mensuales",
     "outstandingPayments": "Pagos pendientes",
-    "insuranceSavings": "Ahorros por seguros",
+    "insuranceSavings": "Cobertura de seguros",
     "pendingBalances": "Saldos pendientes"
   },
   "quickActions": {
@@ -201,7 +201,7 @@
     "kpi": {
       "totalOutstanding": "Total pendiente",
       "fromInvoices": "De {{count}} facturas",
-      "insuranceSavings": "Ahorros por seguros",
+      "insuranceSavings": "Cobertura de seguros",
       "thisMonth": "Este mes",
       "overduePayments": "Pagos vencidos",
       "requiresFollowUp": "Requiere seguimiento"
@@ -417,7 +417,7 @@
       "outstandingBalance": "Saldo pendiente",
       "tabs": {
         "overview": "Resumen",
-        "history": "Historial médico",
+        "history": "Control de procedimientos",
         "odontogram": "Odontograma",
         "payments": "Pagos",
         "documents": "Documentos"

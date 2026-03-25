@@ -9,17 +9,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { StatusBadge } from './StatusBadge';
-import { Wallet, Search, Eye, DollarSign, TrendingDown, Receipt, Printer, Plus, CheckCircle } from 'lucide-react';
-import { getPayments, createPayment, getPatients, getClinicSettings } from '../lib/api';
+import { Wallet, Search, Eye, DollarSign, TrendingDown, Receipt, Printer, Plus, CheckCircle, X } from 'lucide-react';
+import { getPayments, createPayment, getPatients, getClinicSettings, getCatalogProcedures } from '../lib/api';
 import { getPaymentTransactions, createPaymentTransaction, updatePayment } from '../lib/api';
 import { PaginationControl } from './PaginationControl';
 import html2pdf from 'html2pdf.js';
+
+export interface PaymentItem {
+  id?: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
 interface Payment {
   id: number;
   patient: string;
   patientId?: number;
   procedure: string;
+  items?: PaymentItem[];
   date: string;
   originalAmount: number;
   insuranceCoverage: number;
@@ -51,9 +59,13 @@ export function PaymentsScreen() {
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [patientsList, setPatientsList] = useState<any[]>([]);
+  const [catalogProcedures, setCatalogProcedures] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<PaymentItem[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [clinicSettings, setClinicSettings] = useState<any>(null);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+
+  const calculatedTotal = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const [paymentForm, setPaymentForm] = useState<any>({
     patientId: '',
@@ -88,10 +100,11 @@ export function PaymentsScreen() {
     async function load() {
       try {
         setLoadingPayments(true);
-        const [paysRes, patsRes, settingsRes] = await Promise.all([
+        const [paysRes, patsRes, settingsRes, catRes] = await Promise.all([
           getPayments(),
           getPatients(),
-          getClinicSettings().catch(() => null)
+          getClinicSettings().catch(() => null),
+          getCatalogProcedures().catch(() => null)
         ]);
         if (!mounted) return;
         const pays = (paysRes.payments || []).map((p: any) => ({
@@ -111,6 +124,7 @@ export function PaymentsScreen() {
         }));
         setPayments(pays);
         setPatientsList(patsRes.patients || []);
+        setCatalogProcedures(catRes?.catalog || []);
         if (settingsRes?.settings) setClinicSettings(settingsRes.settings);
       } catch (err) {
         console.error('Failed loading payments', err);
@@ -161,7 +175,8 @@ export function PaymentsScreen() {
 
     try {
       const patientId = Number(paymentForm.patientId);
-      const originalAmount = Number(paymentForm.amount) || 0;
+      const manualAmount = Number(paymentForm.amount) || 0;
+      const originalAmount = selectedItems.length > 0 ? calculatedTotal : manualAmount;
       const insuranceCoverage = Number(paymentForm.insuranceCoverage) || 0;
       const finalAmount = originalAmount - insuranceCoverage;
 
@@ -183,9 +198,14 @@ export function PaymentsScreen() {
         status = 'unpaid';
       }
 
+      const procedureNames = selectedItems.length > 0
+        ? selectedItems.map(i => `${i.quantity}x ${i.name}`).join(', ')
+        : (paymentForm.procedure || '');
+
       const payload: any = {
         patientId,
-        procedure: paymentForm.procedure || '',
+        procedure: procedureNames,
+        items: selectedItems.length > 0 ? selectedItems : undefined,
         originalAmount,
         insuranceCoverage,
         amountPaid,
@@ -214,7 +234,11 @@ export function PaymentsScreen() {
         notes: created.notes || '',
       };
       setPayments(prev => [newPayment, ...prev]);
-      setPaymentForm({ patientId: '', procedure: '', amount: '', insuranceCoverage: '', method: 'cash', transactionId: '', paymentType: 'full', paymentAmount: '', notes: '' });
+      setPaymentForm({
+        patientId: '', procedure: '', amount: '', insuranceCoverage: '',
+        method: 'cash', transactionId: '', paymentType: 'full', paymentAmount: '', notes: ''
+      });
+      setSelectedItems([]);
       setIsRecordPaymentOpen(false);
       setPaymentError(null);
     } catch (err) {
@@ -223,124 +247,110 @@ export function PaymentsScreen() {
     }
   };
 
-  // ── Invoice PDF Generation ────────────────────────────────────────────
+  // ── Invoice PDF Generation (Ticket / Receipt Style) ──────────────────
   const handlePrintInvoice = async (payment: Payment, transactions: any[]) => {
     setGeneratingInvoice(true);
-    const dateStr = new Date(payment.date || new Date()).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' });
-    const clinicName = clinicSettings?.name || 'DentaCare';
+    const dateStr = new Date(payment.date || new Date()).toLocaleDateString('es-DO', { year: '2-digit', month: '2-digit', day: '2-digit' });
+    const timeStr = new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const clinicName = clinicSettings?.name || 'Clínica Dental';
     const balance = Math.max(0, payment.finalAmount - payment.amountPaid);
     const statusLabel: Record<string, string> = { paid: 'PAGADO', pending: 'PENDIENTE', unpaid: 'SIN PAGAR', partial: 'PARCIAL' };
-    const statusColor: Record<string, string> = { paid: '#059669', pending: '#d97706', unpaid: '#dc2626', partial: '#d97706' };
     const st = String(payment.status).toLowerCase();
 
-    const txRows = transactions.length > 0 ? transactions.map(tx => `
-      <tr style="border-bottom:1px solid #f3f4f6;">
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${new Date(tx.createdAt).toLocaleDateString('es-DO')}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${METHOD_LABELS[tx.method] || tx.method || '-'}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${tx.transactionId || '-'}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${tx.notes || '-'}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#059669;text-align:right;font-weight:700;">+$${Number(tx.amount).toFixed(2)}</td>
-      </tr>
-    `).join('') : `<tr><td colspan="5" style="padding:16px;text-align:center;color:#9ca3af;font-size:12px;">Sin transacciones registradas</td></tr>`;
+    // Elements
+    const dotLine = `<div style="border-top:2px dotted #111;margin:8px 0;"></div>`;
+    const dashLine = `<div style="border-top:1px dashed #111;margin:8px 0;"></div>`;
+
+    let itemsHtml = '';
+    if (payment.items && payment.items.length > 0) {
+      itemsHtml = payment.items.map(item => `
+        <div style="display:flex;justify-content:space-between;padding:3px 0;align-items:flex-end;">
+          <span style="flex-grow:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.quantity > 1 ? item.quantity + 'x ' : ''}${item.name}</span>
+          <span style="flex-shrink:0;padding-left:4px;border-bottom:1px dotted #ccc;margin-bottom:4px;flex-grow:1;"></span>
+          <span style="flex-shrink:0;padding-left:8px;">$${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+      `).join('');
+    } else {
+      itemsHtml = `
+        <div style="display:flex;justify-content:space-between;padding:3px 0;align-items:flex-end;">
+          <span style="flex-grow:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${payment.procedure || 'Tratamiento'}</span>
+          <span style="flex-shrink:0;padding-left:4px;border-bottom:1px dotted #ccc;margin-bottom:4px;flex-grow:1;"></span>
+          <span style="flex-shrink:0;padding-left:8px;">$${payment.originalAmount.toFixed(2)}</span>
+        </div>
+      `;
+    }
 
     const htmlContent = `
-      <div style="font-family:Arial,sans-serif;color:#111827;padding:40px;width:190mm;box-sizing:border-box;">
+      <div style="font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, monospace;color:#111;width:78mm;margin:0 auto;padding:12px 10px;box-sizing:border-box;">
 
         <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:3px solid #030213;">
-          <div>
-            <h1 style="margin:0 0 4px 0;font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#030213;">${clinicName}</h1>
-            <p style="margin:0;font-size:12px;color:#6b7280;">Sistema de Gestión Odontológica</p>
+        <div style="text-align:center;font-size:16px;font-weight:600;margin-bottom:8px;">
+          N° DE FACTURA #${String(payment.id).padStart(10, '0')}
+        </div>
+        ${dotLine}
+
+        <!-- Info Grid -->
+        <div style="display:flex;justify-content:space-between;font-size:10px;line-height:1.4;margin-bottom:4px;">
+          <div style="width:60%;">
+            <div>${clinicName}</div>
+            <div>Cajero: Administración</div>
+            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Paciente: ${payment.patient}</div>
+          </div>
+          <div style="width:40%;text-align:right;">
+            <div>Hora: ${timeStr}</div>
+            <div>Fecha: ${dateStr}</div>
+          </div>
+        </div>
+        ${dashLine}
+
+        <!-- Items Table -->
+        <div style="font-size:11px;font-weight:600;display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span>Descripción</span>
+          <span>PRECIO</span>
+        </div>
+        <div style="font-size:11px;padding-bottom:4px;">
+          ${itemsHtml}
+        </div>
+        ${dashLine}
+
+        <!-- Totals -->
+        <div style="font-size:12px;font-weight:600;padding:2px 0;">
+          <div style="display:flex;justify-content:space-between;padding:2px 0;">
+            <span>SUBTOTAL</span>
+            <span>$${payment.originalAmount.toFixed(2)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;">
+            <span>DESCUENTO / SEGURO</span>
+            <span>$${payment.insuranceCoverage.toFixed(2)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:2px 0;">
+            <span>TOTAL</span>
+            <span>$${payment.finalAmount.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;margin:6px 0;padding:4px 0;">
+          <span>VALOR A PAGAR</span>
+          <span>$${payment.finalAmount.toFixed(2)}</span>
+        </div>
+        ${dotLine}
+
+        <!-- Footer Info -->
+        <div style="font-size:10px;display:flex;justify-content:space-between;margin:6px 0;">
+          <div style="font-weight:600;">
+            ${payment.transactionId ? 'TXN #<br/>' : ''}Medio de pago
           </div>
           <div style="text-align:right;">
-            <div style="background:#030213;color:#fff;padding:8px 16px;border-radius:6px;font-size:18px;font-weight:800;letter-spacing:1px;">FACTURA</div>
-            <div style="margin-top:8px;font-size:12px;color:#6b7280;"># ${String(payment.id).padStart(6, '0')}</div>
-            <div style="font-size:12px;color:#6b7280;">${dateStr}</div>
+            ${payment.transactionId ? payment.transactionId + '<br/>' : ''}${METHOD_LABELS[payment.paymentMethod || 'cash'] || payment.paymentMethod || 'Efectivo'}
           </div>
         </div>
+        ${dotLine}
 
-        <!-- Patient + Status -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;gap:16px;">
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;flex:1;">
-            <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Facturado a</div>
-            <div style="font-size:16px;font-weight:700;color:#111827;">${payment.patient}</div>
-            ${payment.procedure ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;">Procedimiento: ${payment.procedure}</div>` : ''}
-          </div>
-          <div style="text-align:center;padding:16px 24px;border-radius:8px;border:2px solid ${statusColor[st] || '#6b7280'};">
-            <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:4px;">ESTADO</div>
-            <div style="font-size:18px;font-weight:900;color:${statusColor[st] || '#6b7280'};">${statusLabel[st] || st.toUpperCase()}</div>
-          </div>
+        <div style="text-align:center;font-size:12px;font-weight:600;margin-top:12px;padding:0 10px;">
+          Gracias por visitar nuestra<br/>
+          ${clinicName}
         </div>
-
-        <!-- Financial Summary Table -->
-        <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
-          <thead>
-            <tr style="background:#030213;color:#fff;">
-              <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Descripción</th>
-              <th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Monto</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #e5e7eb;">
-              <td style="padding:12px 14px;font-size:13px;color:#374151;">Monto Original del Tratamiento</td>
-              <td style="padding:12px 14px;font-size:13px;color:#374151;text-align:right;">$${payment.originalAmount.toFixed(2)}</td>
-            </tr>
-            ${payment.insuranceCoverage > 0 ? `
-            <tr style="border-bottom:1px solid #e5e7eb;">
-              <td style="padding:12px 14px;font-size:13px;color:#059669;">Cobertura de Seguro</td>
-              <td style="padding:12px 14px;font-size:13px;color:#059669;text-align:right;">-$${payment.insuranceCoverage.toFixed(2)}</td>
-            </tr>` : ''}
-            <tr style="background:#f9fafb;border-bottom:2px solid #030213;">
-              <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#111827;">Total a Pagar (Responsabilidad del Paciente)</td>
-              <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#111827;text-align:right;">$${payment.finalAmount.toFixed(2)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #e5e7eb;">
-              <td style="padding:12px 14px;font-size:13px;color:#374151;">Total Pagado</td>
-              <td style="padding:12px 14px;font-size:13px;color:#059669;text-align:right;font-weight:600;">$${payment.amountPaid.toFixed(2)}</td>
-            </tr>
-            <tr style="background:${balance > 0 ? '#fef2f2' : '#f0fdf4'};">
-              <td style="padding:14px;font-size:15px;font-weight:800;color:${balance > 0 ? '#dc2626' : '#059669'};">SALDO PENDIENTE</td>
-              <td style="padding:14px;font-size:18px;font-weight:900;color:${balance > 0 ? '#dc2626' : '#059669'};text-align:right;">$${balance.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Method / Tx ID -->
-        ${payment.paymentMethod ? `
-        <div style="margin-bottom:20px;padding:12px 14px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;color:#374151;">
-          <strong>Método de pago:</strong> ${METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod}
-          ${payment.transactionId ? ` &nbsp;|&nbsp; <strong>ID Transacción:</strong> ${payment.transactionId}` : ''}
-        </div>` : ''}
-
-        <!-- Notes -->
-        ${payment.notes ? `
-        <div style="margin-bottom:20px;padding:12px 14px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;font-size:12px;color:#92400e;">
-          <strong>Notas:</strong> ${payment.notes}
-        </div>` : ''}
-
-        <!-- Payment History -->
-        ${transactions.length > 0 ? `
-        <div style="margin-bottom:28px;">
-          <h3 style="margin:0 0 12px 0;font-size:13px;font-weight:700;text-transform:uppercase;color:#374151;letter-spacing:1px;">Historial de Pagos</h3>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f3f4f6;">
-                <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;">Fecha</th>
-                <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;">Método</th>
-                <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;">ID Transacción</th>
-                <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;">Notas</th>
-                <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>${txRows}</tbody>
-          </table>
-        </div>` : ''}
-
-        <!-- Footer -->
-        <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
-          <p style="margin:0;font-size:11px;color:#9ca3af;font-style:italic;">Documento generado automáticamente por ${clinicName}. Fecha de emisión: ${new Date().toLocaleDateString('es-DO')}.</p>
-          <p style="margin:0;font-size:11px;color:#9ca3af;">Factura #${String(payment.id).padStart(6, '0')}</p>
-        </div>
+        ${dotLine}
       </div>
     `;
 
@@ -352,11 +362,11 @@ export function PaymentsScreen() {
     document.body.appendChild(container);
 
     const opt = {
-      margin: [8, 8, 8, 8] as [number, number, number, number],
-      filename: `Factura_${payment.patient.replace(/\s+/g, '_')}_${payment.id}.pdf`,
+      margin: [2, 2, 2, 2] as [number, number, number, number],
+      filename: `Factura_${payment.id}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+      html2canvas: { scale: 3, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: [80, 220] as [number, number], orientation: 'portrait' as const },
     };
 
     try {
@@ -369,6 +379,7 @@ export function PaymentsScreen() {
       setGeneratingInvoice(false);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -648,24 +659,76 @@ export function PaymentsScreen() {
               </Select>
             </div>
 
-            {/* Procedure */}
-            <div className="space-y-2">
-              <Label>Procedimiento / Tratamiento</Label>
-              <Input
-                value={paymentForm.procedure}
-                onChange={(e) => setPaymentForm({ ...paymentForm, procedure: e.target.value })}
-                placeholder="Ej. Limpieza dental, Extracción…"
-              />
+            {/* Procedure Selection */}
+            <div className="space-y-3">
+              <Label>Procedimientos / Tratamientos</Label>
+              <div className="flex gap-2">
+                <Select onValueChange={(val) => {
+                  const proc = catalogProcedures.find(p => String(p.id) === val);
+                  if (proc) {
+                    const existing = selectedItems.find(i => i.id === proc.id);
+                    if (existing) {
+                      setSelectedItems(selectedItems.map(i => i.id === proc.id ? { ...i, quantity: i.quantity + 1 } : i));
+                    } else {
+                      setSelectedItems([...selectedItems, { id: proc.id, name: proc.name, price: proc.price, quantity: 1 }]);
+                    }
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Añadir tratamiento del catálogo..." /></SelectTrigger>
+                  <SelectContent>
+                    {catalogProcedures.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name} - ${p.price}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedItems.length > 0 && (
+                <div className="border rounded-md bg-gray-50/50 flex flex-col gap-2 p-2 max-h-48 overflow-y-auto">
+                  {selectedItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border text-sm">
+                      <div className="flex-1 truncate pr-2 font-medium">{item.name}</div>
+                      <div className="flex items-center gap-2">
+                        <Input type="number" min="1" className="w-16 h-8 text-center" value={item.quantity} onChange={(e) => {
+                          const q = parseInt(e.target.value, 10) || 1;
+                          setSelectedItems(selectedItems.map(i => i.id === item.id ? { ...i, quantity: Math.max(1, q) } : i));
+                        }} />
+                        <span className="w-16 text-right text-gray-600">${(item.price * item.quantity).toFixed(2)}</span>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => {
+                          setSelectedItems(selectedItems.filter(i => i.id !== item.id));
+                        }}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-right flex items-center justify-end font-medium py-1 border-t mt-1 text-[15px] pr-2">
+                    <span className="text-gray-500 mr-2">Monto Base Total:</span> ${calculatedTotal.toFixed(2)}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Original Amount */}
-            <div className="space-y-2">
-              <Label>{t('payments.form.amount')}</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                <Input type="number" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} className="pl-7" placeholder="0.00" />
+            {/* Procedure (Manual Fallback) & Original Amount */}
+            {selectedItems.length === 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-l-2 border-blue-400 pl-3">
+                <div className="space-y-2">
+                  <Label className="text-gray-500">O ingresar manualmente</Label>
+                  <Input
+                    value={paymentForm.procedure}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, procedure: e.target.value })}
+                    placeholder="Ej. Limpieza (Manual)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-500">Monto Base</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <Input type="number" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} className="pl-7" placeholder="0.00" />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Insurance Coverage */}
             <div className="space-y-2">

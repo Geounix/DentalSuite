@@ -687,7 +687,7 @@ function PatientProfileScreen({ patient, onBack }: { patient: Patient; onBack: (
           </TabsTrigger>
           <TabsTrigger value="antecedentes">
             <HeartPulse className="w-4 h-4 mr-2" />
-            Antecedentes
+            Historial Médico
           </TabsTrigger>
         </TabsList>
 

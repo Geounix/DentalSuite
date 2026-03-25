@@ -145,9 +145,14 @@ export function AppointmentsScreen() {
   // Verificar si estamos en hoy
   const isToday = isSameDay(currentDate, new Date());
 
-  const timeSlots = Array.from({ length: 10 }, (_, i) => {
-    const hour = 9 + i;
-    return `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+  const timeSlots = Array.from({ length: 20 }, (_, i) => {
+    const totalMinutes = 9 * 60 + i * 30; // start 9:00 AM, 30 min steps
+    const hour24 = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    const minuteStr = minute === 0 ? '00' : '30';
+    return { label: `${hour12}:${minuteStr} ${ampm}`, hour24, minute };
   });
 
   const getStatusColor = (status: string) => {
@@ -348,12 +353,8 @@ export function AppointmentsScreen() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {timeSlots.map(time => {
-                        const [hourStr, minuteStr] = time.split(':');
-                        const hour = parseInt(hourStr);
-                        const isPM = time.includes('PM');
-                        const hour24 = isPM ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour);
-                        const minute = parseInt(minuteStr);
+                      {timeSlots.map(slot => {
+                        const { label, hour24, minute } = slot;
 
                         const appt = apptsForDoctor.find(a =>
                           a.scheduledAt.getHours() === hour24 &&
@@ -361,8 +362,8 @@ export function AppointmentsScreen() {
                         );
 
                         return (
-                          <div key={time} className="flex items-center gap-3 min-h-[60px]">
-                            <div className="w-20 text-sm text-gray-600 font-medium">{time}</div>
+                          <div key={label} className="flex items-center gap-3 min-h-[50px]">
+                            <div className="w-20 text-sm text-gray-600 font-medium">{label}</div>
                             {appt ? (
                               <div className={`flex-1 p-3 rounded-lg border-l-4 ${getStatusColor(appt.status)} cursor-pointer hover:shadow-md transition-shadow`}>
                                 <div className="flex items-start justify-between">
