@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { StatusBadge } from './StatusBadge';
 import { Wallet, Search, Eye, DollarSign, TrendingDown, Receipt, Printer, Plus, CheckCircle, X } from 'lucide-react';
-import { getPayments, createPayment, getPatients, getClinicSettings, getCatalogProcedures, getCotizaciones } from '../lib/api';
+import { getPayments, createPayment, getPatients, getClinicSettings, getCatalogProcedures, getCotizaciones, addCotizacionPayment } from '../lib/api';
 import { getPaymentTransactions, createPaymentTransaction, updatePayment } from '../lib/api';
 import { PaginationControl } from './PaginationControl';
 import { SearchableSelect } from './SearchableSelect';
@@ -245,11 +245,27 @@ export function PaymentsScreen() {
         notes: created.notes || '',
       };
       setPayments(prev => [newPayment, ...prev]);
+
+      // ── If linked to a quote, update the quote's amountPaid/status ──────────
+      if (selectedQuoteId && amountPaid > 0) {
+        try {
+          await addCotizacionPayment(Number(selectedQuoteId), amountPaid, paymentForm.notes || undefined);
+          // Refresh cotizaciones list so the Cotizaciones screen reflects the change
+          const freshCotz = await getCotizaciones().catch(() => ({ cotizaciones: [] }));
+          setCotizaciones((freshCotz.cotizaciones || []).filter((c: any) => c.status !== 'paid' && c.status !== 'cancelled'));
+        } catch (e) {
+          console.error('Failed to update cotización after payment', e);
+          // Non-blocking: payment was already recorded
+        }
+      }
+
       setPaymentForm({
         patientId: '', procedure: '', amount: '', insuranceCoverage: '',
         method: 'cash', transactionId: '', paymentType: 'full', paymentAmount: '', notes: ''
       });
       setSelectedItems([]);
+      setSelectedQuoteId('');
+      setFromQuote(false);
       setIsRecordPaymentOpen(false);
       setPaymentError(null);
     } catch (err) {
