@@ -17,6 +17,8 @@ import usersRoutes from './routes/users';
 import catalogRoutes from './routes/catalog';
 import medicalHistoryRoutes from './routes/medicalHistory';
 import settingsRoutes from './routes/settings';
+import gastosRoutes from './routes/gastos';
+import cotizacionesRoutes from './routes/cotizaciones';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
 import fs from 'fs';
@@ -79,6 +81,8 @@ app.use('/api/users', usersRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/medical-history', medicalHistoryRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/gastos', gastosRoutes);
+app.use('/api/cotizaciones', cotizacionesRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 

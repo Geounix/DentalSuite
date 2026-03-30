@@ -18,6 +18,8 @@ const DocumentsScreen = lazy(() => import('./components/DocumentsScreen').then(m
 const ConsentFormsScreen = lazy(() => import('./components/ConsentFormsScreen').then(m => ({ default: m.ConsentFormsScreen })));
 const CatalogScreen = lazy(() => import('./components/CatalogScreen').then(m => ({ default: m.CatalogScreen })));
 const SettingsScreen = lazy(() => import('./components/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const GastosScreen = lazy(() => import('./components/GastosScreen').then(m => ({ default: m.GastosScreen })));
+const CotizacionesScreen = lazy(() => import('./components/CotizacionesScreen').then(m => ({ default: m.CotizacionesScreen })));
 // ────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -38,7 +40,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Loader2,
+  BookOpen,
+  Package,
+  TrendingDown,
+  ClipboardList,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from './components/ui/avatar';
@@ -61,13 +68,21 @@ const navigationItems = [
   { id: 'dashboard' as Screen, labelKey: 'nav.dashboard', icon: LayoutDashboard },
   { id: 'patients' as Screen, labelKey: 'nav.patients', icon: Users },
   { id: 'appointments' as Screen, labelKey: 'nav.appointments', icon: Calendar },
-  { id: 'payments' as Screen, labelKey: 'nav.payments', icon: DollarSign },
   { id: 'insurance' as Screen, labelKey: 'nav.insurance', icon: Shield },
-  { id: 'documents' as Screen, labelKey: 'nav.documents', icon: FileText },
   { id: 'consent-forms' as Screen, labelKey: 'nav.consentForms', icon: FileCheck },
   { id: 'reports' as Screen, labelKey: 'nav.reports', icon: BarChart3 },
-  { id: 'catalog' as Screen, labelKey: 'nav.catalog', icon: Settings },
-  { id: 'users' as Screen, labelKey: 'nav.userManagement', icon: UserCog },
+];
+
+const contabilidadSubItems = [
+  { id: 'payments' as Screen, label: 'Pagos', icon: DollarSign },
+  { id: 'gastos' as Screen, label: 'Gastos', icon: TrendingDown },
+  { id: 'cotizaciones' as Screen, label: 'Cotizaciones', icon: ClipboardList },
+];
+
+const settingsSubItems = [
+  { id: 'documents' as Screen, label: 'Documentos', icon: BookOpen },
+  { id: 'catalog' as Screen, label: 'Catálogo', icon: Package },
+  { id: 'users' as Screen, label: 'Gestión de Usuarios', icon: UserCog },
 ];
 
 /** Full-page loading spinner shown while a lazy-loaded screen chunk fetches. */
@@ -83,6 +98,8 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
   const { t, i18n } = useTranslation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isContabilidadOpen, setIsContabilidadOpen] = useState(false);
   const [clinicName, setClinicName] = useState(() => localStorage.getItem('clinicName') || 'DentaCare');
   const [clinicLogoUrl, setClinicLogoUrl] = useState<string | null>(() => localStorage.getItem('clinicLogoUrl') || null);
   
@@ -195,6 +212,83 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
                 </Link>
               );
             })}
+            {/* Contabilidad submenu */}
+            <div>
+              <button
+                onClick={() => setIsContabilidadOpen(o => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-700 hover:bg-gray-100 ${
+                  isSidebarCollapsed ? 'justify-center' : ''
+                }`}
+                title={isSidebarCollapsed ? 'Contabilidad' : ''}
+              >
+                <DollarSign className="w-5 h-5 flex-shrink-0 text-gray-600" />
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">Contabilidad</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isContabilidadOpen ? 'rotate-180' : ''}`} />
+                  </>
+                )}
+              </button>
+              {isContabilidadOpen && !isSidebarCollapsed && (
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-3">
+                  {contabilidadSubItems.map(sub => {
+                    const SubIcon = sub.icon;
+                    const isActive = location.pathname === `/${sub.id}`;
+                    return (
+                      <Link
+                        key={sub.id}
+                        to={`/${sub.id}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <SubIcon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                        <span>{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Ajustes submenu */}
+            <div>
+              <button
+                onClick={() => setIsSettingsOpen(o => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-700 hover:bg-gray-100 ${
+                  isSidebarCollapsed ? 'justify-center' : ''
+                }`}
+                title={isSidebarCollapsed ? 'Ajustes' : ''}
+              >
+                <Settings className="w-5 h-5 flex-shrink-0 text-gray-600" />
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">Ajustes</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} />
+                  </>
+                )}
+              </button>
+              {isSettingsOpen && !isSidebarCollapsed && (
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-3">
+                  {settingsSubItems.map(sub => {
+                    const SubIcon = sub.icon;
+                    const isActive = location.pathname === `/${sub.id}`;
+                    return (
+                      <Link
+                        key={sub.id}
+                        to={`/${sub.id}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <SubIcon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                        <span>{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </nav>
 
@@ -320,6 +414,8 @@ function AppContent({ user, setUser, setIsLoggedIn }: { user: any; setUser: any;
                 <Route path="/patients" element={<PatientsScreen />} />
                 <Route path="/appointments" element={<AppointmentsScreen />} />
                 <Route path="/payments" element={<PaymentsScreen />} />
+                <Route path="/gastos" element={<GastosScreen />} />
+                <Route path="/cotizaciones" element={<CotizacionesScreen />} />
                 <Route path="/insurance" element={<InsuranceScreen />} />
                 <Route path="/documents" element={<DocumentsScreen />} />
                 <Route path="/consent-forms" element={<ConsentFormsScreen />} />

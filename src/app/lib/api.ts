@@ -422,3 +422,79 @@ export const saveMedicalHistory = async (patientId: number, payload: any) => {
   return data; // { medicalHistory: {...} }
 };
 
+// ---------------- GASTOS ----------------
+export const getGastos = async (filters?: { from?: string; to?: string; categoria?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.from) params.set('from', filters.from);
+  if (filters?.to) params.set('to', filters.to);
+  if (filters?.categoria) params.set('categoria', filters.categoria);
+  const { data } = await api.get(`/api/gastos?${params.toString()}`);
+  return data; // { gastos: [...] }
+};
+
+export const getGastosSummary = async (filters?: { from?: string; to?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.from) params.set('from', filters.from);
+  if (filters?.to) params.set('to', filters.to);
+  const { data } = await api.get(`/api/gastos/summary?${params.toString()}`);
+  return data; // { totalGastos, totalItbis, totalDescuento, byMonth, byCategoria }
+};
+
+export const createGasto = async (payload: any) => {
+  const { data } = await api.post('/api/gastos', payload);
+  return data; // { gasto: {...} }
+};
+
+export const updateGasto = async (id: number, payload: any) => {
+  const { data } = await api.put(`/api/gastos/${id}`, payload);
+  return data; // { gasto: {...} }
+};
+
+export const deleteGasto = async (id: number) => {
+  const { data } = await api.delete(`/api/gastos/${id}`);
+  return data;
+};
+
+// ---------------- REPORTS (real data) ----------------
+export const getReportRevenue = async (filters?: { from?: string; to?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.from) params.set('startDate', filters.from);
+  if (filters?.to) params.set('endDate', filters.to);
+  const { data } = await api.post('/api/reports/run', { type: 'monthlyRevenue', ...(filters?.from ? { startDate: filters.from } : {}), ...(filters?.to ? { endDate: filters.to } : {}) });
+  return data;
+};
+
+// ---------------- COTIZACIONES ----------------
+export const getCotizaciones = async (patientId?: number) => {
+  const params = patientId ? `?patientId=${patientId}` : '';
+  const { data } = await api.get(`/api/cotizaciones${params}`);
+  return data; // { cotizaciones: [...] }
+};
+
+export const createCotizacion = async (payload: {
+  patientId: number;
+  title: string;
+  items: { name: string; description?: string; quantity: number; price: number }[];
+  discount?: number;
+  tax?: number;
+  notes?: string;
+  validUntil?: string;
+}) => {
+  const { data } = await api.post('/api/cotizaciones', payload);
+  return data; // { cotizacion: {...} }
+};
+
+export const updateCotizacion = async (id: number, payload: any) => {
+  const { data } = await api.put(`/api/cotizaciones/${id}`, payload);
+  return data;
+};
+
+export const addCotizacionPayment = async (id: number, amount: number, notes?: string) => {
+  const { data } = await api.post(`/api/cotizaciones/${id}/payments`, { amount, notes });
+  return data;
+};
+
+export const deleteCotizacion = async (id: number) => {
+  const { data } = await api.delete(`/api/cotizaciones/${id}`);
+  return data;
+};

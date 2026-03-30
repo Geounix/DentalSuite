@@ -1,25 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { StatusBadge } from './StatusBadge';
-import { CalendarPlus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarPlus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Edit2, AlertTriangle, X, Clock, User, Stethoscope } from 'lucide-react';
+import { getAppointments, createAppointment, getPatients, getUsers, updateAppointment, getCatalogProcedures } from '../lib/api';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { getAppointments, createAppointment, getPatients, getUsers, updateAppointment } from '../lib/api';
+import { SearchableSelect } from './SearchableSelect';
 
 interface Appointment {
   id: number;
   scheduledAt: Date;
   patient: string;
+  patientId?: number;
   doctor: string;
   doctorId?: number;
   procedure: string;
-  status: 'Scheduled' | 'Completed' | 'Cancelled';
+  status: string;
   duration: number;
+  notes?: string;
 }
 
 export function AppointmentsScreen() {
@@ -31,11 +34,22 @@ export function AppointmentsScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null); // <-- Usuario actual
+  const [catalogProcedures, setCatalogProcedures] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | 'all'>('all');
+  const [inactivePatients, setInactivePatients] = useState<string[]>([]);
+  const [showInactiveBanner, setShowInactiveBanner] = useState(true);
+
+  // Edit modal
+  const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
+  const [editForm, setEditForm] = useState({
+    patientId: '', doctorId: '', procedure: '',
+    date: '', time: '', duration: 60, notes: ''
+  });
 
   const [formData, setFormData] = useState({
-    patient: '',
-    doctor: '',
+    patientId: '',
+    doctorId: '',
     procedure: '',
     date: new Date().toISOString().split('T')[0],
     time: '09:00',
@@ -43,21 +57,35 @@ export function AppointmentsScreen() {
     notes: ''
   });
 
-  // Cargar usuario actual, pacientes, doctores y citas
+  const refreshAppointments = async (pts: any[], drs: any[]) => {
+    const apptsRes = await getAppointments();
+    return apptsRes.appointments.map((a: any) => ({
+      id: a.id,
+      scheduledAt: new Date(a.scheduledAt),
+      patient: pts.find((p: any) => p.id === a.patientId)?.name || 'Unknown',
+      patientId: a.patientId,
+      doctor: drs.find((d: any) => d.id === a.doctorId)?.name || 'Unknown',
+      doctorId: a.doctorId,
+      procedure: a.procedure,
+      status: a.status,
+      duration: a.duration,
+      notes: a.notes || '',
+    }));
+  };
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const [apptsRes, patientsRes, usersRes] = await Promise.all([
+        const [apptsRes, patientsRes, usersRes, catRes] = await Promise.all([
           getAppointments(),
           getPatients(),
-          getUsers()
+          getUsers(),
+          getCatalogProcedures({ limit: 2000 }).catch(() => ({ catalog: [] })),
         ]);
+        const pats = patientsRes.patients;
+        const drs = usersRes.users.filter((u: any) => String(u.role).toLowerCase() === 'doctor');
+        setCatalogProcedures(catRes.catalog || []);
 
-        setPatients(patientsRes.patients);
-
-        // Normalizar roles y obtener lista de doctores
-        const doctorsData = usersRes.users.filter((u: any) => String(u.role).toLowerCase() === 'doctor');
-        // Detectar usuario actual desde el token si es posible
         try {
           const token = localStorage.getItem('token');
           if (token) {
@@ -67,222 +95,166 @@ export function AppointmentsScreen() {
           } else {
             setCurrentUser(usersRes.users[0]);
           }
-        } catch (e) {
+        } catch {
           setCurrentUser(usersRes.users[0]);
         }
-        setDoctors(doctorsData);
 
-        const mapped = apptsRes.appointments.map((a: any) => {
-          const patientName = patientsRes.patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
-          const doctorName = usersRes.users.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
-          return {
-            id: a.id,
-            scheduledAt: new Date(a.scheduledAt),
-            patient: patientName,
-            doctor: doctorName,
-            doctorId: a.doctorId,
-            procedure: a.procedure,
-            status: a.status,
-            duration: a.duration
-          };
-        });
+        setPatients(pats);
+        setDoctors(drs);
 
+        const mapped: Appointment[] = apptsRes.appointments.map((a: any) => ({
+          id: a.id,
+          scheduledAt: new Date(a.scheduledAt),
+          patient: pats.find((p: any) => p.id === a.patientId)?.name || 'Unknown',
+          patientId: a.patientId,
+          doctor: drs.find((d: any) => d.id === a.doctorId)?.name || 'Unknown',
+          doctorId: a.doctorId,
+          procedure: a.procedure,
+          status: a.status,
+          duration: a.duration,
+          notes: a.notes || '',
+        }));
         setAppointments(mapped);
+
+        // Detect patients inactive >90 days
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        const inactive = pats.filter((pat: any) => {
+          const lastAppt = mapped
+            .filter(a => a.patientId === pat.id)
+            .sort((x, y) => y.scheduledAt.getTime() - x.scheduledAt.getTime())[0];
+          return !lastAppt || lastAppt.scheduledAt < ninetyDaysAgo;
+        }).map((p: any) => p.name);
+        setInactivePatients(inactive);
       } catch (err) {
         console.error('Error loading data', err);
       }
     }
 
     fetchData();
-    // listen for dashboard quick action
     const onOpenCreate = () => setIsCreateModalOpen(true);
     window.addEventListener('open:create-appointment', onOpenCreate as EventListener);
     return () => { window.removeEventListener('open:create-appointment', onOpenCreate as EventListener); };
   }, []);
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    date.toLocaleDateString('es-DO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const isSameDay = (d1: Date, d2: Date) => {
-    return d1.getFullYear() === d2.getFullYear() &&
-      d1.getMonth() === d2.getMonth() &&
-      d1.getDate() === d2.getDate();
-  };
+  const isSameDay = (d1: Date, d2: Date) =>
+    d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 
   const isBeforeToday = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const compare = new Date(date);
-    compare.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const compare = new Date(date); compare.setHours(0, 0, 0, 0);
     return compare < today;
   };
 
-  // Handlers (modifica estos en tu componente)
-  const handlePrevDay = () => {
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() - 1);
-
-    if (isBeforeToday(d)) {
-      return; // No permite ir al pasado
-    }
-
-    setCurrentDate(d);
-  };
-
-  const handleNextDay = () => {
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() + 1);
-    setCurrentDate(d);
-  };
-
-  const handleToday = () => setCurrentDate(new Date());
-
-  // Verificar si estamos en hoy
   const isToday = isSameDay(currentDate, new Date());
 
-  const timeSlots = Array.from({ length: 20 }, (_, i) => {
-    const totalMinutes = 9 * 60 + i * 30; // start 9:00 AM, 30 min steps
-    const hour24 = Math.floor(totalMinutes / 60);
-    const minute = totalMinutes % 60;
-    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
-    const ampm = hour24 >= 12 ? 'PM' : 'AM';
-    const minuteStr = minute === 0 ? '00' : '30';
-    return { label: `${hour12}:${minuteStr} ${ampm}`, hour24, minute };
-  });
+  const handlePrevDay = () => {
+    const d = new Date(currentDate); d.setDate(d.getDate() - 1);
+    if (!isBeforeToday(d)) setCurrentDate(d);
+  };
+  const handleNextDay = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d); };
+  const handleToday = () => setCurrentDate(new Date());
 
   const getStatusColor = (status: string) => {
     switch (String(status).toLowerCase()) {
-      case 'scheduled': return 'border-l-blue-500 bg-blue-50';
+      case 'scheduled': return 'border-l-blue-500 bg-blue-50 hover:bg-blue-100';
       case 'completed': return 'border-l-emerald-500 bg-emerald-50';
-      case 'cancelled': return 'border-l-red-500 bg-red-50';
-      default: return 'border-l-gray-500 bg-gray-50';
+      case 'cancelled': return 'border-l-red-400 bg-red-50 opacity-70';
+      default: return 'border-l-gray-400 bg-gray-50';
     }
   };
 
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
       await updateAppointment(id, { status });
-      // refresh appointments
-      const latest = await getAppointments();
-      const mappedLatest = latest.appointments.map((a: any) => {
-        const patientName = patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
-        const doctorName = doctors.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
-        return {
-          id: a.id,
-          scheduledAt: new Date(a.scheduledAt),
-          patient: patientName,
-          doctor: doctorName,
-          doctorId: a.doctorId,
-          procedure: a.procedure,
-          status: a.status,
-          duration: a.duration
-        };
-      });
-      setAppointments(mappedLatest);
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
     } catch (err) {
       console.error('Failed to update appointment status', err);
-      alert('Failed to update appointment');
+    }
+  };
+
+  // Open edit modal
+  const openEdit = (appt: Appointment) => {
+    setEditingAppt(appt);
+    const d = appt.scheduledAt;
+    setEditForm({
+      patientId: String(appt.patientId || ''),
+      doctorId: String(appt.doctorId || ''),
+      procedure: appt.procedure,
+      date: d.toISOString().split('T')[0],
+      time: d.toTimeString().slice(0, 5),
+      duration: appt.duration,
+      notes: appt.notes || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAppt) return;
+    try {
+      const patientId = Number(editForm.patientId) || undefined;
+      const doctorId = Number(editForm.doctorId) || undefined;
+      const scheduledAt = new Date(`${editForm.date}T${editForm.time}:00`);
+      await updateAppointment(editingAppt.id, {
+        patientId, doctorId,
+        procedure: editForm.procedure,
+        scheduledAt: scheduledAt.toISOString(),
+        duration: editForm.duration,
+        notes: editForm.notes,
+      });
+      const updated = await refreshAppointments(patients, doctors);
+      setAppointments(updated);
+      setEditingAppt(null);
+    } catch (err) {
+      console.error('Failed to save edit', err);
+      alert('Error al guardar los cambios.');
     }
   };
 
   const handleCreateAppointment = async () => {
+    const patientId = Number(formData.patientId);
+    const doctorId = Number(formData.doctorId);
+    if (!patientId) { alert(t('appointmentForm.errors.selectPatient')); return; }
+    if (!doctorId) { alert(t('appointmentForm.errors.selectDoctor')); return; }
+    if (!formData.procedure) { alert('Selecciona un procedimiento.'); return; }
+    const scheduledAt = new Date(`${formData.date}T${formData.time}:00`);
+    if (scheduledAt < new Date()) { alert('No se puede agendar en el pasado.'); return; }
     try {
-      const patientId = patients.find(p => p.name === formData.patient)?.id;
-      const doctorId = doctors.find(d => d.name === formData.doctor)?.id;
-
-      // Validate patient and doctor selection explicitly
-      if (typeof patientId !== 'number') {
-        alert(t('appointmentForm.errors.selectPatient'));
-        return;
-      }
-      if (typeof doctorId !== 'number') {
-        alert(t('appointmentForm.errors.selectDoctor'));
-        return;
-      }
-
-      const scheduledAt = new Date(`${formData.date}T${formData.time}:00`);
-
-      // 🔒 VALIDACIÓN 1: No permitir fechas pasadas
-      const now = new Date();
-      if (scheduledAt < now) {
-        alert("Cannot schedule appointments in the past");
-        return;
-      }
-
-      // 🔒 VALIDACIÓN 2: No permitir duplicados (mismo doctor, misma fecha, misma hora)
-      const isDuplicate = appointments.some(appt => {
-        const sameDoctor = appt.doctorId && doctorId ? appt.doctorId === doctorId : appt.doctor === formData.doctor;
-        const sameDate = appt.scheduledAt.toDateString() === scheduledAt.toDateString();
-        const sameHour = appt.scheduledAt.getHours() === scheduledAt.getHours();
-        const sameMinute = appt.scheduledAt.getMinutes() === scheduledAt.getMinutes();
-
-        return sameDoctor && sameDate && sameHour && sameMinute;
-      });
-
-      if (isDuplicate) {
-        alert(t('appointmentForm.errors.duplicateSlot', { doctor: formData.doctor, time: formData.time }));
-        return;
-      }
-
-      // Si pasa todas las validaciones, crear la cita
-      const res = await createAppointment({
-        patientId,
-        doctorId,
-        procedure: formData.procedure,
-        scheduledAt: scheduledAt.toISOString(),
-        duration: formData.duration,
-        notes: formData.notes
-      });
-
-      // Refrescar la lista completa desde la API para asegurar consistencia
-      const latest = await getAppointments();
-      const mappedLatest = latest.appointments.map((a: any) => {
-        const patientName = patients.find((p: any) => p.id === a.patientId)?.name || 'Unknown';
-        const doctorName = doctors.find((d: any) => d.id === a.doctorId)?.name || 'Unknown';
-        return {
-          id: a.id,
-          scheduledAt: new Date(a.scheduledAt),
-          patient: patientName,
-          doctor: doctorName,
-          doctorId: a.doctorId,
-          procedure: a.procedure,
-          status: a.status,
-          duration: a.duration
-        };
-      });
-
-      setAppointments(mappedLatest);
-
+      await createAppointment({ patientId, doctorId, procedure: formData.procedure, scheduledAt: scheduledAt.toISOString(), duration: formData.duration, notes: formData.notes });
+      const updated = await refreshAppointments(patients, doctors);
+      setAppointments(updated);
       setIsCreateModalOpen(false);
-
-      // Limpiar formulario después de éxito
-      setFormData({
-        patient: '',
-        doctor: '',
-        procedure: '',
-        date: new Date().toISOString().split('T')[0],
-        time: '09:00',
-        duration: 60,
-        notes: ''
-      });
-
+      setFormData({ patientId: '', doctorId: '', procedure: '', date: new Date().toISOString().split('T')[0], time: '09:00', duration: 60, notes: '' });
     } catch (err: any) {
-      console.error('Error creating appointment', err);
-      // Try to show server-side error if provided
-      const serverMsg = err?.response?.data?.error || err?.response?.data || err.message;
-      alert(t('appointmentForm.errors.createFailed', { message: typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg) }));
+      const msg = err?.response?.data?.error || err.message;
+      alert(`Error: ${msg}`);
     }
   };
 
-  if (!currentUser) return <div>{t('loading.user')}</div>;
+  if (!currentUser) return <div className="p-8 text-gray-500">{t('loading.user')}</div>;
+
+  // Options for searchable selects
+  const patientOptions = patients.map(p => ({ value: String(p.id), label: p.name }));
+  const doctorOptions = doctors.map(d => ({ value: String(d.id), label: d.name }));
+  const procedureOptions = catalogProcedures.map(c => ({ value: c.name, label: c.name }));
+
+  // Filtered doctors for display
+  const visibleDoctors = currentUser.role === 'admin' ? doctors : doctors.filter((d: any) => d.id === currentUser.id);
+
+  // Day view: appointments for selected doctor filter
+  const getDayAppts = (doctorId?: number) =>
+    appointments
+      .filter(a => a.scheduledAt && isSameDay(a.scheduledAt, currentDate))
+      .filter(a => !doctorId || a.doctorId === doctorId)
+      .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+
+  const activeDoctorId = selectedDoctorId === 'all' ? undefined : selectedDoctorId;
+  const dayAppointments = getDayAppts(activeDoctorId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -294,241 +266,350 @@ export function AppointmentsScreen() {
           {t('appointments.newAppointment')}
         </Button>
       </div>
-      {/* JSX (tu vista) */}
-      <Card>
-        <CardContent className="pt-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={handlePrevDay}
-              disabled={isToday}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
 
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-gray-600" />
-              <h2 className="text-xl font-semibold text-gray-900">{formatDate(currentDate)}</h2>
-            </div>
-
-            <Button variant="outline" onClick={handleNextDay}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleToday}
-              disabled={isToday}
-            >
-              {t('appointments.today')}
-            </Button>
+      {/* Inactivity Alert Banner */}
+      {showInactiveBanner && inactivePatients.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">
+              {inactivePatients.length} paciente{inactivePatients.length > 1 ? 's' : ''} sin consulta en más de 3 meses
+            </p>
+            <p className="text-sm text-amber-700 mt-1 truncate">
+              {inactivePatients.slice(0, 5).join(', ')}{inactivePatients.length > 5 ? ` y ${inactivePatients.length - 5} más…` : ''}
+            </p>
           </div>
-
-          <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week')}>
-            <TabsList>
-              <TabsTrigger value="day">{t('appointments.view.day')}</TabsTrigger>
-              <TabsTrigger value="week">{t('appointments.view.week')}</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Calendar View: day or week */}
-      {view === 'day' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {doctors
-            .filter(doc => currentUser.role === 'admin' || doc.id === currentUser.id)
-            .map(doc => {
-              const apptsForDoctor = appointments.filter(a =>
-                (currentUser.role === 'admin' || a.doctor === currentUser.name) &&
-                a.doctor === doc.name &&
-                a.scheduledAt.toDateString() === currentDate.toDateString()
-              );
-
-              return (
-                <Card key={doc.id}>
-                  <CardHeader>
-                    <CardTitle>{t('appointments.doctorSchedule', { name: doc.name })}</CardTitle>
-                    <CardDescription>{apptsForDoctor.length} {t('appointments.countLabel')}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {timeSlots.map(slot => {
-                        const { label, hour24, minute } = slot;
-
-                        const appt = apptsForDoctor.find(a =>
-                          a.scheduledAt.getHours() === hour24 &&
-                          a.scheduledAt.getMinutes() === minute
-                        );
-
-                        return (
-                          <div key={label} className="flex items-center gap-3 min-h-[50px]">
-                            <div className="w-20 text-sm text-gray-600 font-medium">{label}</div>
-                            {appt ? (
-                              <div className={`flex-1 p-3 rounded-lg border-l-4 ${getStatusColor(appt.status)} cursor-pointer hover:shadow-md transition-shadow`}>
-                                <div className="flex items-start justify-between">
-                                  <div>
-                                    <p className="font-medium text-gray-900">{appt.patient}</p>
-                                    <p className="text-sm text-gray-600">{appt.procedure}</p>
-                                    <p className="text-xs text-gray-500 mt-1">{appt.duration} min</p>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-2">
-                                    <StatusBadge status={appt.status} />
-                                    <div className="flex gap-2">
-                                      {appt.status.toLowerCase() === 'scheduled' && (
-                                        <>
-                                          <Button size="sm" onClick={() => handleUpdateStatus(appt.id, 'completed')}>{t('appointments.complete')}</Button>
-                                          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(appt.id, 'cancelled')}>{t('appointments.cancel')}</Button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex-1 p-3 rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">{t('appointments.available')}</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {doctors
-            .filter(doc => currentUser.role === 'admin' || doc.id === currentUser.id)
-            .map(doc => {
-              const weekStart = new Date(currentDate);
-              const dow = weekStart.getDay();
-              weekStart.setDate(weekStart.getDate() - dow);
-              const days = Array.from({ length: 7 }).map((_, i) => {
-                const d = new Date(weekStart);
-                d.setDate(weekStart.getDate() + i);
-                return d;
-              });
-
-              const apptsForDoctor = appointments.filter(a => a.doctor === doc.name);
-
-              return (
-                <Card key={doc.id}>
-                  <CardHeader>
-                    <CardTitle>{doc.name} — Week</CardTitle>
-                    <CardDescription>{apptsForDoctor.length} appointments this week</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-7 gap-4">
-                      {days.map(day => {
-                        const apptsForDay = apptsForDoctor.filter(a => a.scheduledAt.toDateString() === day.toDateString())
-                          .sort((a,b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
-
-                        return (
-                          <div key={day.toISOString()} className="p-2 border rounded">
-                            <div className="text-xs text-gray-500 font-medium mb-2">{day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-                            <div className="space-y-2">
-                              {apptsForDay.length === 0 && <div className="text-xs text-gray-400">{t('appointmentForm.noAppts')}</div>}
-                              {apptsForDay.map(appt => (
-                                <div key={appt.id} className={`p-2 rounded ${getStatusColor(appt.status)} text-sm` }>
-                                  <div className="font-medium">{appt.patient}</div>
-                                  <div className="text-xs text-gray-700">{appt.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {appt.procedure}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <button onClick={() => setShowInactiveBanner(false)} className="text-amber-400 hover:text-amber-600 flex-shrink-0">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Create Appointment Modal */}
+      {/* Navigation Bar */}
+      <Card>
+        <CardContent className="pt-4 pb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrevDay} disabled={isToday}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-2 min-w-[200px]">
+              <CalendarIcon className="w-4 h-4 text-gray-500" />
+              <span className="font-semibold text-gray-900 text-sm">{formatDate(currentDate)}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleNextDay}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            {!isToday && (
+              <Button variant="outline" size="sm" onClick={handleToday}>Hoy</Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Doctor Filter (only in day view) */}
+            {view === 'day' && visibleDoctors.length > 1 && (
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-500" />
+                <Select
+                  value={String(selectedDoctorId)}
+                  onValueChange={(v) => setSelectedDoctorId(v === 'all' ? 'all' : Number(v))}
+                >
+                  <SelectTrigger className="w-44 h-8 text-sm">
+                    <SelectValue placeholder="Todos los doctores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los doctores</SelectItem>
+                    {visibleDoctors.map((d: any) => (
+                      <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week')}>
+              <TabsList>
+                <TabsTrigger value="day">{t('appointments.view.day')}</TabsTrigger>
+                <TabsTrigger value="week">{t('appointments.view.week')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── DAY VIEW ── */}
+      {view === 'day' && (
+        <div className="space-y-3">
+          {dayAppointments.length === 0 ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">Sin citas para este día</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  <CalendarPlus className="w-4 h-4 mr-2" />
+                  Agregar cita
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            dayAppointments.map(appt => (
+              <div
+                key={appt.id}
+                className={`flex items-center gap-4 p-4 rounded-xl border-l-4 shadow-sm transition-all ${getStatusColor(appt.status)}`}
+              >
+                {/* Time */}
+                <div className="flex flex-col items-center w-14 flex-shrink-0">
+                  <Clock className="w-4 h-4 text-gray-400 mb-0.5" />
+                  <span className="text-sm font-bold text-gray-700">
+                    {appt.scheduledAt.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                  </span>
+                  <span className="text-xs text-gray-400">{appt.duration}m</span>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-12 bg-gray-200 flex-shrink-0" />
+
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="font-semibold text-gray-900 truncate">{appt.patient}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Stethoscope className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-sm text-gray-600 truncate">{appt.procedure}</span>
+                  </div>
+                  {selectedDoctorId === 'all' && (
+                    <p className="text-xs text-gray-400 mt-1">Dr. {appt.doctor}</p>
+                  )}
+                </div>
+
+                {/* Status + Actions */}
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <StatusBadge status={appt.status} />
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                      onClick={() => openEdit(appt)}
+                      title="Editar cita"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                    {String(appt.status).toLowerCase() === 'scheduled' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => handleUpdateStatus(appt.id, 'completed')}
+                        >
+                          {t('appointments.complete')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleUpdateStatus(appt.id, 'cancelled')}
+                        >
+                          {t('appointments.cancel')}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── WEEK VIEW ── */}
+      {view === 'week' && (() => {
+        const weekStart = new Date(currentDate);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const days = Array.from({ length: 7 }).map((_, i) => {
+          const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d;
+        });
+
+        const drsToShow = visibleDoctors;
+        return (
+          <div className="space-y-4">
+            {drsToShow.map((doc: any) => {
+              const apptsForDoc = appointments.filter(a => a.doctorId === doc.id);
+              return (
+                <Card key={doc.id}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Dr. {doc.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-7 gap-2">
+                      {days.map(day => {
+                        const dayAppts = apptsForDoc
+                          .filter(a => isSameDay(a.scheduledAt, day))
+                          .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+                        const isPast = isBeforeToday(day);
+                        const isCurrentDay = isSameDay(day, new Date());
+                        return (
+                          <div key={day.toISOString()} className={`p-2 border rounded-lg min-h-[80px] ${isCurrentDay ? 'border-blue-300 bg-blue-50/40' : 'border-gray-100'} ${isPast ? 'opacity-60' : ''}`}>
+                            <div className={`text-xs font-semibold mb-2 ${isCurrentDay ? 'text-blue-600' : 'text-gray-500'}`}>
+                              {day.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric' })}
+                            </div>
+                            {dayAppts.length === 0
+                              ? <div className="text-xs text-gray-300 italic">Libre</div>
+                              : dayAppts.map(a => (
+                                <div
+                                  key={a.id}
+                                  onClick={() => openEdit(a)}
+                                  className={`p-1.5 rounded text-xs mb-1 cursor-pointer border-l-2 ${getStatusColor(a.status)}`}
+                                >
+                                  <div className="font-medium truncate">{a.scheduledAt.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                                  <div className="truncate text-gray-700">{a.patient}</div>
+                                </div>
+                              ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* ── Edit Appointment Modal ── */}
+      <Dialog open={!!editingAppt} onOpenChange={() => setEditingAppt(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Cita</DialogTitle>
+            <DialogDescription>Modifica los datos de la cita agendada.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Paciente</Label>
+              <SearchableSelect
+                options={patientOptions}
+                value={editForm.patientId}
+                onChange={v => setEditForm({ ...editForm, patientId: v })}
+                placeholder="Buscar paciente..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Doctor</Label>
+              <SearchableSelect
+                options={doctorOptions}
+                value={editForm.doctorId}
+                onChange={v => setEditForm({ ...editForm, doctorId: v })}
+                placeholder="Buscar doctor..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Procedimiento</Label>
+              <SearchableSelect
+                options={procedureOptions}
+                value={editForm.procedure}
+                onChange={v => setEditForm({ ...editForm, procedure: v })}
+                placeholder="Buscar procedimiento del catálogo..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha</Label>
+                <Input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Hora</Label>
+                <Input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Duración</Label>
+              <Select value={editForm.duration.toString()} onValueChange={v => setEditForm({ ...editForm, duration: parseInt(v) })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="45">45 min</SelectItem>
+                  <SelectItem value="60">1 hora</SelectItem>
+                  <SelectItem value="90">1.5 horas</SelectItem>
+                  <SelectItem value="120">2 horas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notas</Label>
+              <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Observaciones opcionales…" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingAppt(null)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">Guardar Cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Create Appointment Modal ── */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t('appointmentForm.scheduleTitle')}</DialogTitle>
             <DialogDescription>{t('appointmentForm.scheduleDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Patient */}
             <div className="space-y-2">
-              <Label htmlFor="patient">{t('appointmentForm.patientLabel')}</Label>
-              <Select value={formData.patient} onValueChange={(value) => setFormData({ ...formData, patient: value })}>
-                <SelectTrigger><SelectValue placeholder={t('appointmentForm.selectPatient')} /></SelectTrigger>
-                <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label>{t('appointmentForm.patientLabel')}</Label>
+              <SearchableSelect
+                options={patientOptions}
+                value={formData.patientId}
+                onChange={v => setFormData({ ...formData, patientId: v })}
+                placeholder="Buscar paciente..."
+              />
             </div>
-
-            {/* Doctor */}
             <div className="space-y-2">
-              <Label htmlFor="doctor">{t('appointmentForm.doctorLabel')}</Label>
-              <Select value={formData.doctor} onValueChange={(value) => setFormData({ ...formData, doctor: value })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{doctors.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label>{t('appointmentForm.doctorLabel')}</Label>
+              <SearchableSelect
+                options={doctorOptions}
+                value={formData.doctorId}
+                onChange={v => setFormData({ ...formData, doctorId: v })}
+                placeholder="Buscar doctor..."
+              />
             </div>
-
-            {/* Procedure */}
             <div className="space-y-2">
-              <Label htmlFor="procedure">{t('appointmentForm.procedureLabel')}</Label>
-              <Select value={formData.procedure} onValueChange={(value) => setFormData({ ...formData, procedure: value })}>
-                <SelectTrigger><SelectValue placeholder={t('appointmentForm.selectProcedure')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Teeth Cleaning">{t('appointmentForm.procedures.teethCleaning')}</SelectItem>
-                  <SelectItem value="Root Canal">{t('appointmentForm.procedures.rootCanal')}</SelectItem>
-                  <SelectItem value="Crown Placement">{t('appointmentForm.procedures.crownPlacement')}</SelectItem>
-                  <SelectItem value="Filling">{t('appointmentForm.procedures.filling')}</SelectItem>
-                  <SelectItem value="Extraction">{t('appointmentForm.procedures.extraction')}</SelectItem>
-                  <SelectItem value="Consultation">{t('appointmentForm.procedures.consultation')}</SelectItem>
-                  <SelectItem value="Checkup">{t('appointmentForm.procedures.checkup')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>{t('appointmentForm.procedureLabel')}</Label>
+              <SearchableSelect
+                options={procedureOptions}
+                value={formData.procedure}
+                onChange={v => setFormData({ ...formData, procedure: v })}
+                placeholder="Buscar procedimiento del catálogo..."
+              />
             </div>
-
-            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label>Fecha</Label>
                 <Input
-                  id="date"
                   type="date"
-                  min={new Date().toISOString().split('T')[0]}  // ← Esto bloquea días anteriores
+                  min={new Date().toISOString().split('T')[0]}
                   value={formData.date}
-                  onChange={(e) => {
-                    const selectedDate = e.target.value;
+                  onChange={e => {
                     const today = new Date().toISOString().split('T')[0];
-
-                    // Validación extra por si acaso
-                        if (selectedDate < today) {
-                          alert(t('appointmentForm.pastDateError'));
-                          return;
-                        }
-
-                    setFormData({ ...formData, date: selectedDate });
+                    if (e.target.value < today) { alert(t('appointmentForm.pastDateError')); return; }
+                    setFormData({ ...formData, date: e.target.value });
                   }}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="time">{t('appointmentForm.timeLabel')}</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                />
+                <Label>{t('appointmentForm.timeLabel')}</Label>
+                <Input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
               </div>
             </div>
-
-            {/* Duration */}
             <div className="space-y-2">
-              <Label htmlFor="duration">{t('appointmentForm.durationLabel')}</Label>
-              <Select value={formData.duration.toString()} onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}>
+              <Label>{t('appointmentForm.durationLabel')}</Label>
+              <Select value={formData.duration.toString()} onValueChange={v => setFormData({ ...formData, duration: parseInt(v) })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="30">{t('appointmentForm.durationOptions.30')}</SelectItem>
@@ -539,10 +620,16 @@ export function AppointmentsScreen() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Notas (opcional)</Label>
+              <Input value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Observaciones adicionales…" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('common.cancel')}</Button>
-            <Button onClick={handleCreateAppointment} className="bg-blue-600 hover:bg-blue-700">{t('appointmentForm.scheduleButton')}</Button>
+            <Button onClick={handleCreateAppointment} className="bg-blue-600 hover:bg-blue-700">
+              {t('appointmentForm.scheduleButton')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

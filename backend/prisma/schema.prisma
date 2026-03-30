@@ -35,6 +35,7 @@ model Patient {
   documents         Document[]
   consents          Consent[]
   medicalHistory    MedicalHistory?
+  cotizaciones      Cotizacion[]
 
   @@index([deletedAt])
   @@index([name])
@@ -233,4 +234,43 @@ model ClinicSettings {
   logoUrl   String?
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+model Gasto {
+  id        Int       @id @default(autoincrement())
+  rnc       String?
+  proveedor String
+  cliente   String?
+  nfc       String?
+  factura   String?
+  fecha     DateTime
+  categoria String?
+  cantidad  Float
+  descuento Float     @default(0)
+  itbis     Float     @default(0)
+  total     Float
+  notas     String?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+model Cotizacion {
+  id          Int       @id @default(autoincrement())
+  patientId   Int
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  title       String
+  items       Json      // Array of {name, description, quantity, price}
+  subtotal    Float
+  discount    Float     @default(0)
+  tax         Float     @default(0)
+  total       Float
+  status      String    @default("pending") // pending, approved, partial, paid, cancelled
+  validUntil  DateTime?
+  notes       String?
+  amountPaid  Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([patientId])
 }

@@ -6,7 +6,7 @@ import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge } from './StatusBadge';
 import { Shield, Search, Eye, TrendingDown, CheckCircle2, Plus, Edit, ArrowLeft, Trash2 } from 'lucide-react';
-import { getInsurances, createInsurance, createPlan, updatePlan, createProcedure, updateProcedure, deleteProcedure } from '../lib/api';
+import { getInsurances, createInsurance, createPlan, updatePlan, deleteInsurance, deletePlan, createProcedure, updateProcedure, deleteProcedure } from '../lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -201,6 +201,40 @@ export function InsuranceScreen() {
     })();
   };
 
+  // Delete Company
+  const handleDeleteCompany = (companyId: number, companyName: string) => {
+    if (!confirm(`¿Eliminar la aseguradora "${companyName}" y todos sus planes? Esta acción no se puede deshacer.`)) return;
+    (async () => {
+      try {
+        await deleteInsurance(companyId);
+        await loadCompanies();
+        if (selectedCompany?.id === companyId) { setSelectedCompany(null); setView('companies'); }
+      } catch (err) {
+        console.error('delete company', err);
+        alert('No se pudo eliminar la aseguradora.');
+      }
+    })();
+  };
+
+  // Delete Plan
+  const handleDeletePlan = (planId: number, planName: string) => {
+    if (!confirm(`¿Eliminar el plan "${planName}"? Se eliminarán también sus procedimientos cubiertos.`)) return;
+    (async () => {
+      try {
+        await deletePlan(planId);
+        const list = await loadCompanies();
+        if (selectedCompany) {
+          const updated = list.find((c: any) => c.id === selectedCompany.id) || null;
+          setSelectedCompany(updated);
+        }
+        if (selectedPlan?.id === planId) { setSelectedPlan(null); setView('company-detail'); }
+      } catch (err) {
+        console.error('delete plan', err);
+        alert('No se pudo eliminar el plan.');
+      }
+    })();
+  };
+
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -303,17 +337,28 @@ export function InsuranceScreen() {
                       </TableCell>
                         <TableCell className="text-gray-600">{t('insurance.table.planCount', { count: (company.plans && Array.isArray(company.plans) ? company.plans.length : 0) })}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCompany(company);
-                            setView('company-detail');
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCompany(company);
+                              setView('company-detail');
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteCompany(company.id, company.name)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -423,7 +468,7 @@ export function InsuranceScreen() {
                         </TableCell>
                         <TableCell className="text-gray-600">{plan.procedures.length} procedures</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -432,8 +477,8 @@ export function InsuranceScreen() {
                                 setView('plan-detail');
                               }}
                             >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
+                              <Eye className="w-4 h-4 mr-1" />
+                              Ver
                             </Button>
                             <Button
                               variant="ghost"
@@ -443,8 +488,17 @@ export function InsuranceScreen() {
                                 setIsEditPlanModalOpen(true);
                               }}
                             >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
+                              <Edit className="w-4 h-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeletePlan(plan.id, plan.planName)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Eliminar
                             </Button>
                           </div>
                         </TableCell>
