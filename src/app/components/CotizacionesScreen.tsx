@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getCotizaciones, createCotizacion, deleteCotizacion, getPatients, getCatalogProcedures, getClinicSettings } from '../lib/api';
 import html2pdf from 'html2pdf.js';
+import { useTranslation } from 'react-i18next';
 
 interface QuoteItem { name: string; description?: string; quantity: number; price: number }
 interface Cotizacion {
@@ -52,6 +53,7 @@ export function CotizacionesScreen() {
   const [clinicSettings, setClinicSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const { t } = useTranslation();
 
   // Modals
   const [isNewOpen, setIsNewOpen] = useState(false);
@@ -249,15 +251,20 @@ export function CotizacionesScreen() {
   const totalPagadas = cotizaciones.filter(c => c.status === 'paid').length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cotizaciones</h1>
-          <p className="text-gray-500 mt-1 text-sm">Genera y gestiona cotizaciones para tus pacientes</p>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-8 h-8 text-blue-600" />
+            </div>
+            {t('cotizaciones.title')}
+          </h1>
+          <p className="text-gray-500 mt-2">{t('cotizaciones.subtitle')}</p>
         </div>
-        <Button onClick={() => { setError(null); setIsNewOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" /> Nueva Cotización
+        <Button onClick={() => { setError(null); setIsNewOpen(true); }} className="bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:shadow-lg">
+          <Plus className="w-4 h-4 mr-2" /> {t('cotizaciones.newQuote')}
         </Button>
       </div>
 
@@ -294,19 +301,28 @@ export function CotizacionesScreen() {
         })}
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Listado de Cotizaciones</CardTitle>
-              <CardDescription>{cotizaciones.length} cotizaciones registradas</CardDescription>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input placeholder="Buscar..." className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
+      {/* SEARCH */}
+      <Card className="border-none shadow-sm overflow-hidden">
+        <CardContent className="p-4 bg-white">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-blue-500 text-base"
+              placeholder={t('cotizaciones.searchPlaceholder')}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* LIST */}
+      <Card className="border-gray-200 shadow-sm overflow-hidden">
+        <CardHeader className="bg-gray-50/50 border-b border-gray-100 pb-4">
+          <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-500" />
+            {t('cotizaciones.recentQuotes')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

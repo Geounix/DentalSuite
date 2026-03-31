@@ -224,7 +224,8 @@ export function PaymentsScreen() {
         paymentMethod: paymentForm.method,
         transactionId: paymentForm.transactionId || undefined,
         notes: paymentForm.notes,
-        status
+        status,
+        cotizacionId: selectedQuoteId ? Number(selectedQuoteId) : undefined
       };
 
       const res = await createPayment(payload);

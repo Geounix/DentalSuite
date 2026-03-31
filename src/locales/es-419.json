@@ -575,5 +575,24 @@
     "close": "Cerrar",
     "view": "Ver",
     "cancel": "Cancelar"
+  },
+  "gastos": {
+    "title": "Gastos",
+    "subtitle": "Registro de gastos, compras y cuentas por pagar de la clínica",
+    "recordExpense": "Registrar Gasto",
+    "accountsPayable": "Cuentas por Pagar"
+  },
+  "cotizaciones": {
+    "title": "Cotizaciones",
+    "subtitle": "Genera y administra presupuestos dentales",
+    "newQuote": "Nueva Cotización",
+    "patient": "Paciente",
+    "status": "Estado",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "dueDate": "Válida hasta",
+    "actions": "Acciones",
+    "searchPlaceholder": "Buscar cotizaciones por paciente o título...",
+    "recentQuotes": "Cotizaciones Recientes"
   }
 }

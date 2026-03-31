@@ -77,6 +77,7 @@ model Payment {
   notes             String?
   createdAt         DateTime @default(now())
   deletedAt         DateTime?
+  cotizacionId      Int?
   transactions      PaymentTransaction[]
 
   @@index([patientId])
@@ -125,6 +126,7 @@ model Insurance {
   notes           String?
   defaultCoverage Float?   @default(0)
   createdAt       DateTime @default(now())
+  deletedAt       DateTime?
   plans           InsurancePlan[]
 }
 
@@ -170,6 +172,7 @@ model InsurancePlan {
   type        String?
   procedures  InsuranceProcedure[]
   createdAt   DateTime            @default(now())
+  deletedAt   DateTime?
 
   @@index([insuranceId])
 }
@@ -182,6 +185,7 @@ model InsuranceProcedure {
   coverageAmount Float?
   copayPercent   Int?
   createdAt      DateTime      @default(now())
+  deletedAt      DateTime?
 
   @@index([planId])
 }
@@ -232,6 +236,7 @@ model ClinicSettings {
   id        Int      @id @default(autoincrement())
   name      String   @default("DentaCare")
   logoUrl   String?
+  taxRate   Float    @default(18.0)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }

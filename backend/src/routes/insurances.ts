@@ -9,17 +9,18 @@ router.use(requireAuth);
 
 router.get('/', asyncHandler(async (_req, res) => {
   const ins = await prisma.insurance.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: 'desc' },
-    include: { plans: { include: { procedures: true } } },
+    include: { plans: { where: { deletedAt: null }, include: { procedures: true } } },
   });
   res.json({ insurances: ins });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
-  const ins = await prisma.insurance.findUnique({
-    where: { id },
-    include: { plans: { include: { procedures: true } } },
+  const ins = await prisma.insurance.findFirst({
+    where: { id, deletedAt: null },
+    include: { plans: { where: { deletedAt: null }, include: { procedures: true } } },
   });
   if (!ins) return res.status(404).json({ error: 'Insurance not found' });
   res.json({ insurance: ins });
@@ -43,7 +44,7 @@ router.put('/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
 
 router.delete('/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
-  await prisma.insurance.delete({ where: { id } });
+  await prisma.insurance.update({ where: { id }, data: { deletedAt: new Date() } });
   res.status(204).send();
 }));
 
@@ -51,7 +52,7 @@ router.delete('/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
 router.get('/:id/plans', asyncHandler(async (req, res) => {
   const insuranceId = Number(req.params.id);
   const plans = await prisma.insurancePlan.findMany({
-    where: { insuranceId },
+    where: { insuranceId, deletedAt: null },
     include: { procedures: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -75,8 +76,7 @@ router.put('/plans/:planId', requireRole(['admin']), asyncHandler(async (req, re
 
 router.delete('/plans/:planId', requireRole(['admin']), asyncHandler(async (req, res) => {
   const id = Number(req.params.planId);
-  await prisma.insuranceProcedure.deleteMany({ where: { planId: id } });
-  await prisma.insurancePlan.delete({ where: { id } });
+  await prisma.insurancePlan.update({ where: { id }, data: { deletedAt: new Date() } });
   res.status(204).send();
 }));
 

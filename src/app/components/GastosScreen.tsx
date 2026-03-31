@@ -10,7 +10,8 @@ import {
   TrendingDown, Plus, Search, Edit2, Trash2, DollarSign,
   Receipt, ReceiptText, ChevronDown, ChevronUp, Calculator
 } from 'lucide-react';
-import { getGastos, createGasto, updateGasto, deleteGasto } from '../lib/api';
+import { getGastos, createGasto, updateGasto, deleteGasto, getClinicSettings } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 const CATEGORIAS = [
   'Materiales dentales',
@@ -64,16 +65,24 @@ export function GastosScreen() {
   const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [taxRate, setTaxRate] = useState(18);
+  const { t } = useTranslation();
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await getGastos({
-        from: filterFrom || undefined,
-        to: filterTo || undefined,
-        categoria: filterCat || undefined,
-      });
+      const [res, settingsRes] = await Promise.all([
+        getGastos({
+          from: filterFrom || undefined,
+          to: filterTo || undefined,
+          categoria: filterCat || undefined,
+        }),
+        getClinicSettings().catch(() => null)
+      ]);
       setGastos(res.gastos || []);
+      if (settingsRes?.settings?.taxRate !== undefined) {
+        setTaxRate(settingsRes.settings.taxRate);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,12 +98,12 @@ export function GastosScreen() {
   const fItbis = parseFloat(form.itbis) || 0;
   const fTotal = calcTotal(fCantidad, fDescuento, fItbis);
 
-  // Auto-calculate ITBIS (18%) when cantidad or descuento changes
+  // Auto-calculate ITBIS when cantidad or descuento changes
   const handleCantidadChange = (v: string) => {
     const cant = parseFloat(v) || 0;
     const desc = parseFloat(form.descuento) || 0;
     const base = Math.max(0, cant - desc);
-    const itbis = parseFloat((base * 0.18).toFixed(2));
+    const itbis = parseFloat((base * (taxRate / 100)).toFixed(2));
     setForm(f => ({ ...f, cantidad: v, itbis: String(itbis) }));
   };
 
@@ -190,13 +199,13 @@ export function GastosScreen() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <TrendingDown className="w-8 h-8 text-red-500" />
-            Gastos
+            {t('gastos.title')}
           </h1>
-          <p className="text-gray-600 mt-1">Registro de gastos, compras y cuentas por pagar de la clínica</p>
+          <p className="text-gray-600 mt-1">{t('gastos.subtitle')}</p>
         </div>
         <Button onClick={openCreate} className="bg-red-600 hover:bg-red-700">
           <Plus className="w-4 h-4 mr-2" />
-          Registrar Gasto
+          {t('gastos.recordExpense')}
         </Button>
       </div>
 
@@ -315,7 +324,7 @@ export function GastosScreen() {
       {/* Table */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-gray-700">Cuentas por Pagar</CardTitle>
+          <CardTitle className="text-base font-semibold text-gray-700">{t('gastos.accountsPayable')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -486,7 +495,7 @@ export function GastosScreen() {
             </div>
             {/* ITBIS (auto-calc) */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-gray-600 uppercase">ITBIS (18% auto)</Label>
+              <Label className="text-xs font-semibold text-gray-600 uppercase">ITBIS ({taxRate}% auto)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                 <Input type="number" className="pl-6 bg-amber-50" placeholder="0.00" value={form.itbis}
